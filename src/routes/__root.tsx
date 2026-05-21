@@ -82,6 +82,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Privatna platforma za Balkan Union savez.",
       },
       { property: "og:type", content: "website" },
+      { name: "twitter:title", content: "BAUN Pirate Tracker" },
+      { name: "description", content: "BAUN Pirate Tracker is a full-stack web app for Ikariam alliance coordination." },
+      { property: "og:description", content: "BAUN Pirate Tracker is a full-stack web app for Ikariam alliance coordination." },
+      { name: "twitter:description", content: "BAUN Pirate Tracker is a full-stack web app for Ikariam alliance coordination." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a2a55793-07fb-449e-b944-a4bf59e7723c/id-preview-f141f7d7--45267316-57b1-49c2-9a99-2c674ec1ca45.lovable.app-1779350612282.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a2a55793-07fb-449e-b944-a4bf59e7723c/id-preview-f141f7d7--45267316-57b1-49c2-9a99-2c674ec1ca45.lovable.app-1779350612282.png" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
