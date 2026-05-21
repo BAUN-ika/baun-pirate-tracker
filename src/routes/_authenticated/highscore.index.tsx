@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
 
-export const Route = createFileRoute("/_authenticated/highscore")({
+export const Route = createFileRoute("/_authenticated/highscore/")({
   component: HighscoreListPage,
 });
 
