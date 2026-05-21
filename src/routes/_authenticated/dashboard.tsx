@@ -96,7 +96,13 @@ function Dashboard() {
         .select("id, action, metadata, created_at, user_id")
         .order("created_at", { ascending: false })
         .limit(10);
-      const ids = Array.from(new Set((data ?? []).map((r) => r.user_id).filter(Boolean)));
+      const ids = Array.from(
+        new Set(
+          (data ?? [])
+            .map((r) => r.user_id)
+            .filter((v): v is string => typeof v === "string"),
+        ),
+      );
       const profiles =
         ids.length > 0
           ? (await supabase.from("profiles").select("id, username").in("id", ids))
