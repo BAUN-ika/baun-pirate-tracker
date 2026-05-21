@@ -14,16 +14,224 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          baun_passcode_hash: string
+          id: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          baun_passcode_hash: string
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          baun_passcode_hash?: string
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      highscore_entries: {
+        Row: {
+          created_at: string
+          id: string
+          ikariam_username: string
+          period_end: string
+          period_start: string
+          pirate_points: number
+          rank: number
+          submission_id: string
+          submitted_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ikariam_username: string
+          period_end: string
+          period_start: string
+          pirate_points: number
+          rank: number
+          submission_id: string
+          submitted_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ikariam_username?: string
+          period_end?: string
+          period_start?: string
+          pirate_points?: number
+          rank?: number
+          submission_id?: string
+          submitted_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "highscore_entries_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "highscore_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      highscore_submissions: {
+        Row: {
+          created_at: string
+          entries_count: number
+          id: string
+          period_end: string
+          period_start: string
+          raw_text: string
+          submitted_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entries_count?: number
+          id?: string
+          period_end: string
+          period_start: string
+          raw_text: string
+          submitted_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          entries_count?: number
+          id?: string
+          period_end?: string
+          period_start?: string
+          raw_text?: string
+          submitted_by_user_id?: string
+        }
+        Relationships: []
+      }
+      ikariam_accounts: {
+        Row: {
+          collected_by_user_id: string | null
+          created_at: string
+          current_pirate_points: number
+          id: string
+          ikariam_username: string
+          last_collected_at: string | null
+          last_updated_at: string
+          owner_user_id: string
+        }
+        Insert: {
+          collected_by_user_id?: string | null
+          created_at?: string
+          current_pirate_points?: number
+          id?: string
+          ikariam_username: string
+          last_collected_at?: string | null
+          last_updated_at?: string
+          owner_user_id: string
+        }
+        Update: {
+          collected_by_user_id?: string | null
+          created_at?: string
+          current_pirate_points?: number
+          id?: string
+          ikariam_username?: string
+          last_collected_at?: string | null
+          last_updated_at?: string
+          owner_user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          is_active?: boolean
+          username: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          username?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "glavni_pirat" | "korisnik"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +358,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "glavni_pirat", "korisnik"],
+    },
   },
 } as const
