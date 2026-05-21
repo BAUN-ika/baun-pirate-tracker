@@ -14,11 +14,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPointsRouteImport } from './routes/_authenticated/points'
+import { Route as AuthenticatedHighscoreRouteImport } from './routes/_authenticated/highscore'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/audit'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
-import { Route as AuthenticatedHighscoreIndexRouteImport } from './routes/_authenticated/highscore.index'
 import { Route as AuthenticatedHighscoreSubmitRouteImport } from './routes/_authenticated/highscore.submit'
 
 const RegisterRoute = RegisterRouteImport.update({
@@ -45,6 +45,11 @@ const AuthenticatedPointsRoute = AuthenticatedPointsRouteImport.update({
   path: '/points',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedHighscoreRoute = AuthenticatedHighscoreRouteImport.update({
+  id: '/highscore',
+  path: '/highscore',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -65,17 +70,11 @@ const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedHighscoreIndexRoute =
-  AuthenticatedHighscoreIndexRouteImport.update({
-    id: '/highscore/',
-    path: '/highscore/',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedHighscoreSubmitRoute =
   AuthenticatedHighscoreSubmitRouteImport.update({
-    id: '/highscore/submit',
-    path: '/highscore/submit',
-    getParentRoute: () => AuthenticatedRoute,
+    id: '/submit',
+    path: '/submit',
+    getParentRoute: () => AuthenticatedHighscoreRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -86,9 +85,9 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/highscore': typeof AuthenticatedHighscoreRouteWithChildren
   '/points': typeof AuthenticatedPointsRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
-  '/highscore/': typeof AuthenticatedHighscoreIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -98,9 +97,9 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/highscore': typeof AuthenticatedHighscoreRouteWithChildren
   '/points': typeof AuthenticatedPointsRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
-  '/highscore': typeof AuthenticatedHighscoreIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -112,9 +111,9 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/highscore': typeof AuthenticatedHighscoreRouteWithChildren
   '/_authenticated/points': typeof AuthenticatedPointsRoute
   '/_authenticated/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
-  '/_authenticated/highscore/': typeof AuthenticatedHighscoreIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -126,9 +125,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/audit'
     | '/dashboard'
+    | '/highscore'
     | '/points'
     | '/highscore/submit'
-    | '/highscore/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -138,9 +137,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/audit'
     | '/dashboard'
+    | '/highscore'
     | '/points'
     | '/highscore/submit'
-    | '/highscore'
   id:
     | '__root__'
     | '/'
@@ -151,9 +150,9 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/audit'
     | '/_authenticated/dashboard'
+    | '/_authenticated/highscore'
     | '/_authenticated/points'
     | '/_authenticated/highscore/submit'
-    | '/_authenticated/highscore/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -200,6 +199,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPointsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/highscore': {
+      id: '/_authenticated/highscore'
+      path: '/highscore'
+      fullPath: '/highscore'
+      preLoaderRoute: typeof AuthenticatedHighscoreRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -228,31 +234,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/highscore/': {
-      id: '/_authenticated/highscore/'
-      path: '/highscore'
-      fullPath: '/highscore/'
-      preLoaderRoute: typeof AuthenticatedHighscoreIndexRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/highscore/submit': {
       id: '/_authenticated/highscore/submit'
-      path: '/highscore/submit'
+      path: '/submit'
       fullPath: '/highscore/submit'
       preLoaderRoute: typeof AuthenticatedHighscoreSubmitRouteImport
-      parentRoute: typeof AuthenticatedRoute
+      parentRoute: typeof AuthenticatedHighscoreRoute
     }
   }
 }
+
+interface AuthenticatedHighscoreRouteChildren {
+  AuthenticatedHighscoreSubmitRoute: typeof AuthenticatedHighscoreSubmitRoute
+}
+
+const AuthenticatedHighscoreRouteChildren: AuthenticatedHighscoreRouteChildren =
+  {
+    AuthenticatedHighscoreSubmitRoute: AuthenticatedHighscoreSubmitRoute,
+  }
+
+const AuthenticatedHighscoreRouteWithChildren =
+  AuthenticatedHighscoreRoute._addFileChildren(
+    AuthenticatedHighscoreRouteChildren,
+  )
 
 interface AuthenticatedRouteChildren {
   AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedHighscoreRoute: typeof AuthenticatedHighscoreRouteWithChildren
   AuthenticatedPointsRoute: typeof AuthenticatedPointsRoute
-  AuthenticatedHighscoreSubmitRoute: typeof AuthenticatedHighscoreSubmitRoute
-  AuthenticatedHighscoreIndexRoute: typeof AuthenticatedHighscoreIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -260,9 +272,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedHighscoreRoute: AuthenticatedHighscoreRouteWithChildren,
   AuthenticatedPointsRoute: AuthenticatedPointsRoute,
-  AuthenticatedHighscoreSubmitRoute: AuthenticatedHighscoreSubmitRoute,
-  AuthenticatedHighscoreIndexRoute: AuthenticatedHighscoreIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
@@ -278,3 +289,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
