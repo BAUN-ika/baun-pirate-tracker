@@ -42,6 +42,8 @@ import {
   completeDueMissions,
   startMission,
 } from "@/lib/missions.functions";
+import { COORDS_RE, CoordsLink, validCoords } from "@/components/coords-link";
+
 
 export const Route = createFileRoute("/_authenticated/accounts")({
   component: AccountsPage,

@@ -36,7 +36,7 @@ import {
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { collectPoints } from "@/lib/accounts.functions";
 import { completeDueMissions } from "@/lib/missions.functions";
-import { CoordsLink } from "@/routes/_authenticated/accounts";
+import { CoordsLink } from "@/components/coords-link";
 
 export const Route = createFileRoute("/_authenticated/points")({
   component: PointsPage,
