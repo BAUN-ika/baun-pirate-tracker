@@ -49,12 +49,8 @@ export const Route = createFileRoute("/_authenticated/accounts")({
   component: AccountsPage,
 });
 
-const COORDS_RE = /^[0-9]{1,2}:[0-9]{1,2}$/;
-function validCoords(s: string) {
-  if (!COORDS_RE.test(s)) return false;
-  const [a, b] = s.split(":").map(Number);
-  return a >= 1 && a <= 99 && b >= 1 && b <= 99;
-}
+
+
 
 function AccountsPage() {
   const { data: me } = useCurrentUser();
