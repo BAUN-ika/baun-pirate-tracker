@@ -3,6 +3,15 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+const CoordsSchema = z
+  .string()
+  .trim()
+  .regex(/^[0-9]{1,2}:[0-9]{1,2}$/, "Format mora biti N:N (1-99)")
+  .refine((s) => {
+    const [a, b] = s.split(":").map(Number);
+    return a >= 1 && a <= 99 && b >= 1 && b <= 99;
+  }, "Oba broja moraju biti između 1 i 99");
+
 const AddAccountSchema = z.object({
   ikariam_username: z
     .string()
@@ -11,6 +20,7 @@ const AddAccountSchema = z.object({
     .max(60)
     .regex(/^[^\n\r\t]+$/, "Neispravno korisničko ime"),
   current_pirate_points: z.number().int().min(0).max(10_000_000).optional(),
+  fortress_coordinates: CoordsSchema,
 });
 
 export const addAccount = createServerFn({ method: "POST" })
@@ -24,6 +34,7 @@ export const addAccount = createServerFn({ method: "POST" })
         owner_user_id: userId,
         ikariam_username: data.ikariam_username,
         current_pirate_points: data.current_pirate_points ?? 0,
+        fortress_coordinates: data.fortress_coordinates,
         last_updated_at: new Date().toISOString(),
       })
       .select()
@@ -34,10 +45,45 @@ export const addAccount = createServerFn({ method: "POST" })
       action: "add_account",
       entity_type: "ikariam_account",
       entity_id: row.id,
-      metadata: { ikariam_username: data.ikariam_username },
+      metadata: {
+        ikariam_username: data.ikariam_username,
+        fortress_coordinates: data.fortress_coordinates,
+      },
     });
     return row;
   });
+
+const UpdateCoordsSchema = z.object({
+  account_id: z.string().uuid(),
+  fortress_coordinates: CoordsSchema,
+});
+
+export const updateAccountCoordinates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => UpdateCoordsSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: row, error } = await supabase
+      .from("ikariam_accounts")
+      .update({
+        fortress_coordinates: data.fortress_coordinates,
+        last_updated_at: new Date().toISOString(),
+      })
+      .eq("id", data.account_id)
+      .eq("owner_user_id", userId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("audit_logs").insert({
+      user_id: userId,
+      action: "update_coordinates",
+      entity_type: "ikariam_account",
+      entity_id: data.account_id,
+      metadata: { fortress_coordinates: data.fortress_coordinates },
+    });
+    return row;
+  });
+
 
 const UpdatePointsSchema = z.object({
   account_id: z.string().uuid(),

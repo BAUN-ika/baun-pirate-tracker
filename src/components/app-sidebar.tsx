@@ -27,12 +27,17 @@ interface NavItem {
 const NAV: NavItem[] = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
   { label: "Moji nalozi", to: "/accounts", icon: Anchor },
-  { label: "Piratski poeni", to: "/points", icon: Coins },
+  { label: "Piratski poeni saveza", to: "/points", icon: Coins },
   { label: "Highscore unos", to: "/highscore/submit", icon: Upload },
   { label: "Highscore lista", to: "/highscore", icon: ListOrdered },
   { label: "Audit log", to: "/audit", icon: FileClock },
   { label: "Admin panel", to: "/admin", icon: Settings, roles: ["admin"] },
 ];
+
+// Rute koje koriste samo tačno poređenje (sprječava da "/highscore/submit"
+// označi i "/highscore"). Ostale rute koriste prefix-match.
+const EXACT_ROUTES = new Set(["/highscore", "/highscore/submit"]);
+
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
@@ -75,8 +80,10 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {visible.map((item) => {
-          const active =
-            pathname === item.to || pathname.startsWith(item.to + "/");
+          const active = EXACT_ROUTES.has(item.to)
+            ? pathname === item.to
+            : pathname === item.to || pathname.startsWith(item.to + "/");
+
           const Icon = item.icon;
           return (
             <Link

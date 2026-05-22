@@ -1,6 +1,8 @@
 // Highscore text parser.
-// Format: "<rank> . <points> Capture Points <username>"
-// Username may contain spaces.
+// Format: "<rank> . <points> <LABEL ...> <username>"
+// Label za poene varira po jeziku ("Capture Points", "Освајачки поени", "Osvajački bodovi", ...).
+// Pretpostavka: nakon broja poena slijede tačno 2 riječi labele, a sve nakon toga je username.
+// Username može imati razmake.
 
 export interface ParsedRow {
   raw: string;
@@ -11,7 +13,8 @@ export interface ParsedRow {
   reason?: string;
 }
 
-const LINE_REGEX = /^\s*(\d+)\s*\.?\s+([\d,\.]+)\s+Capture Points\s+(.+?)\s*$/i;
+// \S+ pokriva latinicu i ćirilicu (sve što nije whitespace).
+const LINE_REGEX = /^\s*(\d+)\s*\.?\s+([\d.,]+)\s+\S+\s+\S+\s+(.+?)\s*$/;
 
 export function parseHighscoreText(text: string): ParsedRow[] {
   const lines = text.split(/\r?\n/);
@@ -25,7 +28,7 @@ export function parseHighscoreText(text: string): ParsedRow[] {
       continue;
     }
     const rank = parseInt(m[1], 10);
-    const points = parseInt(m[2].replace(/[,\.]/g, ""), 10);
+    const points = parseInt(m[2].replace(/[,\.\s]/g, ""), 10);
     const username = m[3].trim();
     if (!Number.isFinite(rank) || !Number.isFinite(points) || !username) {
       out.push({ raw: trimmed, valid: false, reason: "Nedostaju vrijednosti" });

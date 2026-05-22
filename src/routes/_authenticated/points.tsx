@@ -1,13 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Coins, Search } from "lucide-react";
+import { Coins, Search, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -34,6 +35,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { collectPoints } from "@/lib/accounts.functions";
+import { completeDueMissions } from "@/lib/missions.functions";
+import { CoordsLink } from "@/components/coords-link";
 
 export const Route = createFileRoute("/_authenticated/points")({
   component: PointsPage,
@@ -45,11 +48,25 @@ function PointsPage() {
   const qc = useQueryClient();
   const { isPirate } = useCurrentUser();
   const collectFn = useServerFn(collectPoints);
+  const completeDueFn = useServerFn(completeDueMissions);
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("points");
   const [onlyPositive, setOnlyPositive] = useState(false);
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
+
+  useEffect(() => {
+    completeDueFn({})
+      .then((r) => {
+        if (r.completed > 0) {
+          qc.invalidateQueries({ queryKey: ["all-accounts"] });
+          qc.invalidateQueries({ queryKey: ["my-accounts"] });
+          qc.invalidateQueries({ queryKey: ["all-missions"] });
+          qc.invalidateQueries({ queryKey: ["my-missions"] });
+        }
+      })
+      .catch(() => undefined);
+  }, [completeDueFn, qc]);
 
   const all = useQuery({
     queryKey: ["all-accounts"],
@@ -80,6 +97,30 @@ function PointsPage() {
     },
   });
 
+  const missions = useQuery({
+    queryKey: ["all-missions"],
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pirate_missions")
+        .select("*")
+        .eq("status", "pending")
+        .order("completes_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const missionsByAccount = useMemo(() => {
+    const m = new Map<string, any[]>();
+    for (const x of missions.data ?? []) {
+      const arr = m.get(x.ikariam_account_id) ?? [];
+      arr.push(x);
+      m.set(x.ikariam_account_id, arr);
+    }
+    return m;
+  }, [missions.data]);
+
   const owners = useMemo(() => {
     const map = new Map<string, string>();
     (all.data ?? []).forEach((r) => map.set(r.owner_user_id, r.owner_username));
@@ -108,6 +149,11 @@ function PointsPage() {
     return sorted;
   }, [all.data, search, sort, onlyPositive, ownerFilter]);
 
+  const totalPoints = useMemo(
+    () => rows.reduce((sum, r) => sum + (r.current_pirate_points ?? 0), 0),
+    [rows],
+  );
+
   const collectMut = useMutation({
     mutationFn: (id: string) => collectFn({ data: { account_id: id } }),
     onSuccess: () => {
@@ -122,7 +168,7 @@ function PointsPage() {
   return (
     <div>
       <PageHeader
-        title="Piratski poeni"
+        title="Piratski poeni saveza"
         description="Sumarna lista svih naloga i njihovih trenutnih poena."
       />
 
@@ -173,11 +219,11 @@ function PointsPage() {
             <thead className="bg-background/40 sticky top-0">
               <tr className="text-left text-xs uppercase tracking-widest text-muted-foreground">
                 <th className="px-4 py-3">Username</th>
+                <th className="px-4 py-3">Koordinate</th>
                 <th className="px-4 py-3 text-right">Poeni</th>
+                <th className="px-4 py-3">Misije</th>
                 <th className="px-4 py-3">Vlasnik</th>
                 <th className="px-4 py-3">Update</th>
-                <th className="px-4 py-3">Pokupljeno</th>
-                <th className="px-4 py-3">Ko</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Akcija</th>
               </tr>
@@ -198,28 +244,35 @@ function PointsPage() {
               ) : (
                 rows.map((r) => {
                   const ready = r.current_pirate_points > 0;
+                  const accMissions = missionsByAccount.get(r.id) ?? [];
                   return (
                     <tr
                       key={r.id}
-                      className="border-t border-border hover:bg-accent/30"
+                      className="border-t border-border hover:bg-accent/30 align-top"
                     >
                       <td className="px-4 py-3 font-medium">{r.ikariam_username}</td>
+                      <td className="px-4 py-3">
+                        <CoordsLink coords={r.fortress_coordinates ?? ""} />
+                      </td>
                       <td className="px-4 py-3 text-right font-display text-gold">
                         {Number(r.current_pirate_points).toLocaleString("bs-BA")}
+                      </td>
+                      <td className="px-4 py-3 min-w-[12rem]">
+                        {accMissions.length === 0 ? (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {accMissions.map((m) => (
+                              <MissionRowBar key={m.id} mission={m} />
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
                         {r.owner_username}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         {new Date(r.last_updated_at).toLocaleString("bs-BA")}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {r.last_collected_at
-                          ? new Date(r.last_collected_at).toLocaleString("bs-BA")
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {r.collected_by_username ?? "—"}
                       </td>
                       <td className="px-4 py-3">
                         <span
@@ -254,8 +307,60 @@ function PointsPage() {
                 })
               )}
             </tbody>
+            {rows.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-gold/40 bg-background/40 font-display">
+                  <td className="px-4 py-3 uppercase tracking-widest text-xs text-muted-foreground">
+                    TOTAL
+                  </td>
+                  <td />
+                  <td className="px-4 py-3 text-right text-gold text-lg">
+                    {totalPoints.toLocaleString("bs-BA")}
+                  </td>
+                  <td colSpan={5} className="px-4 py-3 text-xs text-muted-foreground">
+                    {rows.length} naloga prikazano
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MissionRowBar({ mission }: { mission: any }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const start = new Date(mission.started_at).getTime();
+  const end = new Date(mission.completes_at).getTime();
+  const total = Math.max(1, end - start);
+  const elapsed = Math.min(total, Math.max(0, now - start));
+  const pct = Math.round((elapsed / total) * 100);
+  const remainingMs = Math.max(0, end - now);
+  const remH = Math.floor(remainingMs / 3_600_000);
+  const remM = Math.floor((remainingMs % 3_600_000) / 60_000);
+  const totalH = mission.mission_type === "mission_16h" ? 16 : 8;
+  const elapsedH = Math.floor(elapsed / 3_600_000);
+  const elapsedM = Math.floor((elapsed % 3_600_000) / 60_000);
+  const label = mission.mission_type === "mission_16h" ? "16h" : "8h";
+  return (
+    <div className="space-y-1">
+      <div className="text-[11px] flex items-center gap-1.5">
+        <Timer className="size-3 text-gold" />
+        <span className="font-medium">{label} misija</span>
+        <span className="text-muted-foreground">
+          {elapsedH}h {elapsedM}m / {totalH}h
+        </span>
+        <span className="text-success">· +{mission.reward_points}</span>
+      </div>
+      <Progress value={pct} className="h-1" />
+      <div className="text-[10px] text-muted-foreground">
+        ostalo {remH}h {remM}m
       </div>
     </div>
   );
