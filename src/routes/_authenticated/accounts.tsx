@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Anchor, Pencil, Plus, Trash2 } from "lucide-react";
+import { Anchor, MapPin, Pencil, Plus, Ship, Timer, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -33,19 +34,50 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   addAccount,
   deleteAccount,
+  updateAccountCoordinates,
   updateAccountPoints,
 } from "@/lib/accounts.functions";
+import {
+  cancelMission,
+  completeDueMissions,
+  startMission,
+} from "@/lib/missions.functions";
 
 export const Route = createFileRoute("/_authenticated/accounts")({
   component: AccountsPage,
 });
 
+const COORDS_RE = /^[0-9]{1,2}:[0-9]{1,2}$/;
+function validCoords(s: string) {
+  if (!COORDS_RE.test(s)) return false;
+  const [a, b] = s.split(":").map(Number);
+  return a >= 1 && a <= 99 && b >= 1 && b <= 99;
+}
+
 function AccountsPage() {
   const { data: me } = useCurrentUser();
   const qc = useQueryClient();
   const addFn = useServerFn(addAccount);
-  const updFn = useServerFn(updateAccountPoints);
+  const updPtsFn = useServerFn(updateAccountPoints);
+  const updCoordsFn = useServerFn(updateAccountCoordinates);
   const delFn = useServerFn(deleteAccount);
+  const startMissionFn = useServerFn(startMission);
+  const cancelMissionFn = useServerFn(cancelMission);
+  const completeDueFn = useServerFn(completeDueMissions);
+
+  // Best-effort auto-completion of due missions whenever this page is opened.
+  useEffect(() => {
+    completeDueFn({})
+      .then((r) => {
+        if (r.completed > 0) {
+          qc.invalidateQueries({ queryKey: ["my-accounts"] });
+          qc.invalidateQueries({ queryKey: ["all-accounts"] });
+          qc.invalidateQueries({ queryKey: ["my-missions"] });
+          qc.invalidateQueries({ queryKey: ["all-missions"] });
+        }
+      })
+      .catch(() => undefined);
+  }, [completeDueFn, qc]);
 
   const accounts = useQuery({
     queryKey: ["my-accounts", me?.user.id],
@@ -61,9 +93,26 @@ function AccountsPage() {
     },
   });
 
+  const missions = useQuery({
+    queryKey: ["my-missions", me?.user.id],
+    enabled: !!me?.user.id,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pirate_missions")
+        .select("*")
+        .eq("user_id", me!.user.id)
+        .eq("status", "pending")
+        .order("completes_at", { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const [addOpen, setAddOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newPts, setNewPts] = useState("0");
+  const [newCoords, setNewCoords] = useState("");
 
   const addMut = useMutation({
     mutationFn: () =>
@@ -71,6 +120,7 @@ function AccountsPage() {
         data: {
           ikariam_username: newName,
           current_pirate_points: Number(newPts) || 0,
+          fortress_coordinates: newCoords.trim(),
         },
       }),
     onSuccess: () => {
@@ -78,6 +128,7 @@ function AccountsPage() {
       setAddOpen(false);
       setNewName("");
       setNewPts("0");
+      setNewCoords("");
       qc.invalidateQueries({ queryKey: ["my-accounts"] });
       qc.invalidateQueries({ queryKey: ["all-accounts"] });
       qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
@@ -85,11 +136,41 @@ function AccountsPage() {
     onError: (e: any) => toast.error("Greška", { description: e?.message }),
   });
 
+  const startMut = useMutation({
+    mutationFn: (vars: { account_id: string; mission_type: "mission_8h" | "mission_16h" }) =>
+      startMissionFn({ data: vars }),
+    onSuccess: () => {
+      toast.success("Misija pokrenuta.");
+      qc.invalidateQueries({ queryKey: ["my-missions"] });
+      qc.invalidateQueries({ queryKey: ["all-missions"] });
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+
+  const cancelMut = useMutation({
+    mutationFn: (id: string) => cancelMissionFn({ data: { mission_id: id } }),
+    onSuccess: () => {
+      toast.success("Misija otkazana.");
+      qc.invalidateQueries({ queryKey: ["my-missions"] });
+      qc.invalidateQueries({ queryKey: ["all-missions"] });
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+
+  const missionsByAccount = new Map<string, any[]>();
+  for (const m of missions.data ?? []) {
+    const arr = missionsByAccount.get(m.ikariam_account_id) ?? [];
+    arr.push(m);
+    missionsByAccount.set(m.ikariam_account_id, arr);
+  }
+
+  const coordsValid = newCoords.trim() === "" ? false : validCoords(newCoords.trim());
+
   return (
     <div>
       <PageHeader
         title="Moji nalozi"
-        description="Tvoji Ikariam nalozi i trenutni piratski poeni."
+        description="Tvoji Ikariam nalozi, koordinate tvrđave i piratski poeni."
         actions={
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
@@ -115,6 +196,20 @@ function AccountsPage() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>Koordinate tvrđave (npr. 14:28)</Label>
+                  <Input
+                    value={newCoords}
+                    onChange={(e) => setNewCoords(e.target.value)}
+                    placeholder="14:28"
+                    maxLength={5}
+                  />
+                  {newCoords.trim() !== "" && !coordsValid && (
+                    <p className="text-xs text-destructive">
+                      Format mora biti N:N, oba broja između 1 i 99.
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
                   <Label>Početni pirate poeni</Label>
                   <Input
                     type="number"
@@ -127,7 +222,7 @@ function AccountsPage() {
               <DialogFooter>
                 <Button
                   onClick={() => addMut.mutate()}
-                  disabled={!newName.trim() || addMut.isPending}
+                  disabled={!newName.trim() || !coordsValid || addMut.isPending}
                 >
                   {addMut.isPending ? "Dodajem..." : "Dodaj"}
                 </Button>
@@ -157,12 +252,21 @@ function AccountsPage() {
             <AccountCard
               key={a.id}
               account={a}
-              onUpdate={async (pts) => {
-                await updFn({ data: { account_id: a.id, points: pts } });
+              missions={missionsByAccount.get(a.id) ?? []}
+              onUpdatePts={async (pts) => {
+                await updPtsFn({ data: { account_id: a.id, points: pts } });
                 toast.success("Poeni ažurirani.");
                 qc.invalidateQueries({ queryKey: ["my-accounts"] });
                 qc.invalidateQueries({ queryKey: ["all-accounts"] });
                 qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
+              }}
+              onUpdateCoords={async (coords) => {
+                await updCoordsFn({
+                  data: { account_id: a.id, fortress_coordinates: coords },
+                });
+                toast.success("Koordinate ažurirane.");
+                qc.invalidateQueries({ queryKey: ["my-accounts"] });
+                qc.invalidateQueries({ queryKey: ["all-accounts"] });
               }}
               onDelete={async () => {
                 await delFn({ data: { account_id: a.id } });
@@ -171,6 +275,11 @@ function AccountsPage() {
                 qc.invalidateQueries({ queryKey: ["all-accounts"] });
                 qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
               }}
+              onStartMission={(type) =>
+                startMut.mutate({ account_id: a.id, mission_type: type })
+              }
+              onCancelMission={(id) => cancelMut.mutate(id)}
+              startBusy={startMut.isPending}
             />
           ))}
         </div>
@@ -181,15 +290,26 @@ function AccountsPage() {
 
 function AccountCard({
   account,
-  onUpdate,
+  missions,
+  onUpdatePts,
+  onUpdateCoords,
   onDelete,
+  onStartMission,
+  onCancelMission,
+  startBusy,
 }: {
   account: any;
-  onUpdate: (pts: number) => Promise<void>;
+  missions: any[];
+  onUpdatePts: (pts: number) => Promise<void>;
+  onUpdateCoords: (coords: string) => Promise<void>;
   onDelete: () => Promise<void>;
+  onStartMission: (type: "mission_8h" | "mission_16h") => void;
+  onCancelMission: (id: string) => void;
+  startBusy: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [pts, setPts] = useState(String(account.current_pirate_points));
+  const [coords, setCoords] = useState(account.fortress_coordinates ?? "");
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
@@ -198,9 +318,14 @@ function AccountCard({
       toast.error("Unesi cijeli pozitivan broj.");
       return;
     }
+    if (!validCoords(coords)) {
+      toast.error("Koordinate moraju biti N:N (1-99).");
+      return;
+    }
     setSaving(true);
     try {
-      await onUpdate(n);
+      if (n !== account.current_pirate_points) await onUpdatePts(n);
+      if (coords !== (account.fortress_coordinates ?? "")) await onUpdateCoords(coords);
       setEditing(false);
     } catch (e: any) {
       toast.error("Greška", { description: e?.message });
@@ -219,6 +344,12 @@ function AccountCard({
           <div className="font-display text-xl truncate mt-0.5">
             {account.ikariam_username}
           </div>
+          {account.fortress_coordinates && (
+            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <MapPin className="size-3 text-gold" />
+              <CoordsLink coords={account.fortress_coordinates} />
+            </div>
+          )}
         </div>
         <Anchor className="size-5 text-gold shrink-0" />
       </div>
@@ -226,7 +357,7 @@ function AccountCard({
       <div className="rounded-xl bg-background/40 border border-border p-4">
         <div className="text-xs text-muted-foreground">Pirate poeni</div>
         {editing ? (
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 space-y-2">
             <Input
               type="number"
               min={0}
@@ -234,19 +365,28 @@ function AccountCard({
               onChange={(e) => setPts(e.target.value)}
               className="text-lg"
             />
-            <Button onClick={save} disabled={saving} size="sm">
-              {saving ? "..." : "Sačuvaj"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setPts(String(account.current_pirate_points));
-                setEditing(false);
-              }}
-            >
-              Otkaži
-            </Button>
+            <Input
+              value={coords}
+              onChange={(e) => setCoords(e.target.value)}
+              placeholder="Koordinate npr. 14:28"
+              maxLength={5}
+            />
+            <div className="flex gap-2">
+              <Button onClick={save} disabled={saving} size="sm">
+                {saving ? "..." : "Sačuvaj"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setPts(String(account.current_pirate_points));
+                  setCoords(account.fortress_coordinates ?? "");
+                  setEditing(false);
+                }}
+              >
+                Otkaži
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="font-display text-3xl text-gold mt-1">
@@ -254,6 +394,18 @@ function AccountCard({
           </div>
         )}
       </div>
+
+      {missions.length > 0 && (
+        <div className="space-y-2">
+          {missions.map((m) => (
+            <MissionProgressInline
+              key={m.id}
+              mission={m}
+              onCancel={() => onCancelMission(m.id)}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="text-xs text-muted-foreground space-y-0.5">
         <div>
@@ -269,44 +421,132 @@ function AccountCard({
       </div>
 
       {!editing && (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => setEditing(true)}
-          >
-            <Pencil className="size-3.5 mr-1.5" /> Uredi
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-destructive">
-                <Trash2 className="size-3.5" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Obrisati nalog?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Brisanje naloga <b>{account.ikariam_username}</b> je trajno.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Otkaži</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() =>
-                    onDelete().catch((e: any) =>
-                      toast.error("Greška", { description: e?.message }),
-                    )
-                  }
-                >
-                  Obriši
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => setEditing(true)}
+            >
+              <Pencil className="size-3.5 mr-1.5" /> Uredi
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="text-destructive">
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Obrisati nalog?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Brisanje naloga <b>{account.ikariam_username}</b> je trajno.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Otkaži</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() =>
+                      onDelete().catch((e: any) =>
+                        toast.error("Greška", { description: e?.message }),
+                      )
+                    }
+                  >
+                    Obriši
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={startBusy}
+              onClick={() => onStartMission("mission_16h")}
+            >
+              <Ship className="size-3.5 mr-1.5" /> 16h misija
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={startBusy}
+              onClick={() => onStartMission("mission_8h")}
+            >
+              <Ship className="size-3.5 mr-1.5" /> 8h misija
+            </Button>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+export function CoordsLink({ coords }: { coords: string }) {
+  if (!coords || !COORDS_RE.test(coords)) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  const [a, b] = coords.split(":");
+  const islandId = `${a}${b}`;
+  const url = `https://s70-en.ikariam.gameforge.com/?view=island&islandId=${islandId}`;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-gold hover:underline tabular-nums"
+    >
+      {coords}
+    </a>
+  );
+}
+
+function MissionProgressInline({
+  mission,
+  onCancel,
+}: {
+  mission: any;
+  onCancel: () => void;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+  const start = new Date(mission.started_at).getTime();
+  const end = new Date(mission.completes_at).getTime();
+  const total = Math.max(1, end - start);
+  const elapsed = Math.min(total, Math.max(0, now - start));
+  const pct = Math.round((elapsed / total) * 100);
+  const remainingMs = Math.max(0, end - now);
+  const remH = Math.floor(remainingMs / 3_600_000);
+  const remM = Math.floor((remainingMs % 3_600_000) / 60_000);
+  const label =
+    mission.mission_type === "mission_16h" ? "16h misija" : "8h misija";
+
+  return (
+    <div className="rounded-xl border border-border bg-background/30 p-3">
+      <div className="flex items-center justify-between text-xs mb-1.5">
+        <span className="flex items-center gap-1.5">
+          <Timer className="size-3.5 text-gold" />
+          <span className="font-medium">{label}</span>
+          <span className="text-muted-foreground">
+            · ostalo {remH}h {remM}m
+          </span>
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="text-success">+{mission.reward_points}</span>
+          <button
+            onClick={onCancel}
+            className="text-muted-foreground hover:text-destructive"
+            aria-label="Otkaži misiju"
+          >
+            <X className="size-3.5" />
+          </button>
+        </span>
+      </div>
+      <Progress value={pct} className="h-1.5" />
     </div>
   );
 }

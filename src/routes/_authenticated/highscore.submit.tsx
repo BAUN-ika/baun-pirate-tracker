@@ -56,9 +56,12 @@ function HighscoreSubmitPage() {
             <code className="text-gold">
               196 . 10,399 Capture Points Linkinpark88
             </code>
-            . Username može imati razmake. Ostali redovi (Capture Points:, Crew
-            Strength, Time remaining...) se automatski ignorišu.
+            . Parser podržava različite jezike (npr.{" "}
+            <code>113 . 14.828 Освајачки поени DunkelTier</code> ili{" "}
+            <code>113 . 14,828 Osvajački bodovi DunkelTier</code>). Username
+            može imati razmake.
           </p>
+
           <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
