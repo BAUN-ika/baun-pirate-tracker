@@ -144,6 +144,7 @@ export type Database = {
           collected_by_user_id: string | null
           created_at: string
           current_pirate_points: number
+          fortress_coordinates: string | null
           id: string
           ikariam_username: string
           last_collected_at: string | null
@@ -154,6 +155,7 @@ export type Database = {
           collected_by_user_id?: string | null
           created_at?: string
           current_pirate_points?: number
+          fortress_coordinates?: string | null
           id?: string
           ikariam_username: string
           last_collected_at?: string | null
@@ -164,6 +166,7 @@ export type Database = {
           collected_by_user_id?: string | null
           created_at?: string
           current_pirate_points?: number
+          fortress_coordinates?: string | null
           id?: string
           ikariam_username?: string
           last_collected_at?: string | null
@@ -171,6 +174,53 @@ export type Database = {
           owner_user_id?: string
         }
         Relationships: []
+      }
+      pirate_missions: {
+        Row: {
+          completed_at: string | null
+          completes_at: string
+          created_at: string
+          id: string
+          ikariam_account_id: string
+          mission_type: Database["public"]["Enums"]["mission_type"]
+          reward_points: number
+          started_at: string
+          status: Database["public"]["Enums"]["mission_status"]
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completes_at: string
+          created_at?: string
+          id?: string
+          ikariam_account_id: string
+          mission_type: Database["public"]["Enums"]["mission_type"]
+          reward_points: number
+          started_at?: string
+          status?: Database["public"]["Enums"]["mission_status"]
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          completes_at?: string
+          created_at?: string
+          id?: string
+          ikariam_account_id?: string
+          mission_type?: Database["public"]["Enums"]["mission_type"]
+          reward_points?: number
+          started_at?: string
+          status?: Database["public"]["Enums"]["mission_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pirate_missions_ikariam_account_id_fkey"
+            columns: ["ikariam_account_id"]
+            isOneToOne: false
+            referencedRelation: "ikariam_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -222,6 +272,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_due_pirate_missions: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -232,6 +283,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "glavni_pirat" | "korisnik"
+      mission_status: "pending" | "completed" | "cancelled"
+      mission_type: "mission_8h" | "mission_16h"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -360,6 +413,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "glavni_pirat", "korisnik"],
+      mission_status: ["pending", "completed", "cancelled"],
+      mission_type: ["mission_8h", "mission_16h"],
     },
   },
 } as const
