@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -25,7 +25,7 @@ interface AccountInfo {
 
 function useAccountsLookup() {
   const [accounts, setAccounts] = useState<AccountInfo[]>([]);
-  useMemo(() => {
+  useEffect(() => {
     supabase
       .from("ikariam_accounts")
       .select("id, ikariam_username, owner_user_id")
