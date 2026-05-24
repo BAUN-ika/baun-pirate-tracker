@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Radar, Bookmark, Info } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -9,6 +10,12 @@ export const Route = createFileRoute("/_authenticated/pirate-scanner")({
 const BOOKMARKLET_HREF = `javascript:(()=>{const s=document.createElement('script');s.src='https://baun-pirate-tracker.lovable.app/ikariam-pirates.js?v='+Date.now();document.body.appendChild(s);})()`;
 
 function PirateScannerPage() {
+  const bookmarkletRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    bookmarkletRef.current?.setAttribute("href", BOOKMARKLET_HREF);
+  }, []);
+
   return (
     <div>
       <PageHeader
@@ -32,9 +39,8 @@ function PirateScannerPage() {
           </p>
 
           <div className="flex items-center justify-center py-6 border border-dashed border-gold/30 rounded-xl bg-card/40">
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
             <a
-              href={BOOKMARKLET_HREF}
+              ref={bookmarkletRef}
               draggable="true"
               onClick={(e) => e.preventDefault()}
               className="inline-flex items-center gap-2 px-5 py-3 rounded-lg bg-gradient-to-b from-gold/30 to-gold/10 border border-gold/60 text-gold font-display text-base shadow-lg hover:from-gold/40 hover:to-gold/20 transition cursor-grab active:cursor-grabbing"
