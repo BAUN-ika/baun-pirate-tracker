@@ -67,6 +67,9 @@ export type Database = {
       }
       highscore_entries: {
         Row: {
+          alliance_tag: string | null
+          city_name: string | null
+          coordinates: string | null
           created_at: string
           id: string
           ikariam_username: string
@@ -74,10 +77,14 @@ export type Database = {
           period_start: string
           pirate_points: number
           rank: number
+          source: string
           submission_id: string
           submitted_by_user_id: string
         }
         Insert: {
+          alliance_tag?: string | null
+          city_name?: string | null
+          coordinates?: string | null
           created_at?: string
           id?: string
           ikariam_username: string
@@ -85,10 +92,14 @@ export type Database = {
           period_start: string
           pirate_points: number
           rank: number
+          source?: string
           submission_id: string
           submitted_by_user_id: string
         }
         Update: {
+          alliance_tag?: string | null
+          city_name?: string | null
+          coordinates?: string | null
           created_at?: string
           id?: string
           ikariam_username?: string
@@ -96,6 +107,7 @@ export type Database = {
           period_start?: string
           pirate_points?: number
           rank?: number
+          source?: string
           submission_id?: string
           submitted_by_user_id?: string
         }
@@ -117,6 +129,7 @@ export type Database = {
           period_end: string
           period_start: string
           raw_text: string
+          source: string
           submitted_by_user_id: string
         }
         Insert: {
@@ -126,6 +139,7 @@ export type Database = {
           period_end: string
           period_start: string
           raw_text: string
+          source?: string
           submitted_by_user_id: string
         }
         Update: {
@@ -135,6 +149,7 @@ export type Database = {
           period_end?: string
           period_start?: string
           raw_text?: string
+          source?: string
           submitted_by_user_id?: string
         }
         Relationships: []

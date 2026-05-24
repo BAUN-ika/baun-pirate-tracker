@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPointsRouteImport } from './routes/_authenticated/points'
+import { Route as AuthenticatedPirateScannerRouteImport } from './routes/_authenticated/pirate-scanner'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/audit'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -45,6 +46,12 @@ const AuthenticatedPointsRoute = AuthenticatedPointsRouteImport.update({
   path: '/points',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPirateScannerRoute =
+  AuthenticatedPirateScannerRouteImport.update({
+    id: '/pirate-scanner',
+    path: '/pirate-scanner',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
   '/highscore/': typeof AuthenticatedHighscoreIndexRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/audit': typeof AuthenticatedAuditRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
   '/highscore': typeof AuthenticatedHighscoreIndexRoute
@@ -112,6 +121,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/_authenticated/points': typeof AuthenticatedPointsRoute
   '/_authenticated/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
   '/_authenticated/highscore/': typeof AuthenticatedHighscoreIndexRoute
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/audit'
     | '/dashboard'
+    | '/pirate-scanner'
     | '/points'
     | '/highscore/submit'
     | '/highscore/'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/audit'
     | '/dashboard'
+    | '/pirate-scanner'
     | '/points'
     | '/highscore/submit'
     | '/highscore'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/audit'
     | '/_authenticated/dashboard'
+    | '/_authenticated/pirate-scanner'
     | '/_authenticated/points'
     | '/_authenticated/highscore/submit'
     | '/_authenticated/highscore/'
@@ -198,6 +211,13 @@ declare module '@tanstack/react-router' {
       path: '/points'
       fullPath: '/points'
       preLoaderRoute: typeof AuthenticatedPointsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pirate-scanner': {
+      id: '/_authenticated/pirate-scanner'
+      path: '/pirate-scanner'
+      fullPath: '/pirate-scanner'
+      preLoaderRoute: typeof AuthenticatedPirateScannerRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard': {
@@ -250,6 +270,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedPirateScannerRoute: typeof AuthenticatedPirateScannerRoute
   AuthenticatedPointsRoute: typeof AuthenticatedPointsRoute
   AuthenticatedHighscoreSubmitRoute: typeof AuthenticatedHighscoreSubmitRoute
   AuthenticatedHighscoreIndexRoute: typeof AuthenticatedHighscoreIndexRoute
@@ -260,6 +281,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedPirateScannerRoute: AuthenticatedPirateScannerRoute,
   AuthenticatedPointsRoute: AuthenticatedPointsRoute,
   AuthenticatedHighscoreSubmitRoute: AuthenticatedHighscoreSubmitRoute,
   AuthenticatedHighscoreIndexRoute: AuthenticatedHighscoreIndexRoute,
