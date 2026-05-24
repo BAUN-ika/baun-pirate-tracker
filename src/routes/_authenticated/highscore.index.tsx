@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CoordsLink } from "@/components/coords-link";
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
 
 export const Route = createFileRoute("/_authenticated/highscore/")({
@@ -16,6 +17,9 @@ interface Row {
   rank: number;
   ikariam_username: string;
   pirate_points: number;
+  alliance_tag: string | null;
+  coordinates: string | null;
+  city_name: string | null;
   submitted_by: string;
   created_at: string;
 }
@@ -27,7 +31,7 @@ function useHighscore(period: Period) {
       const { data, error } = await supabase
         .from("highscore_entries")
         .select(
-          "rank, ikariam_username, pirate_points, submitted_by_user_id, created_at",
+          "rank, ikariam_username, pirate_points, alliance_tag, coordinates, city_name, submitted_by_user_id, created_at",
         )
         .gte("period_start", period.start.toISOString())
         .lt("period_start", period.end.toISOString())
@@ -54,6 +58,9 @@ function useHighscore(period: Period) {
           rank: r.rank,
           ikariam_username: r.ikariam_username,
           pirate_points: r.pirate_points,
+          alliance_tag: r.alliance_tag ?? null,
+          coordinates: r.coordinates ?? null,
+          city_name: r.city_name ?? null,
           submitted_by: m.get(r.submitted_by_user_id) ?? "—",
           created_at: r.created_at,
         }))
@@ -99,7 +106,12 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
     let xs = data ?? [];
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      xs = xs.filter((r) => r.ikariam_username.toLowerCase().includes(q));
+      xs = xs.filter(
+        (r) =>
+          r.ikariam_username.toLowerCase().includes(q) ||
+          (r.alliance_tag ?? "").toLowerCase().includes(q) ||
+          (r.city_name ?? "").toLowerCase().includes(q),
+      );
     }
     const mn = Number(minR);
     const mx = Number(maxR);
@@ -119,7 +131,7 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
-            placeholder="Pretraži username..."
+            placeholder="Pretraži username / savez / grad..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -141,35 +153,60 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="pirate-card rounded-2xl overflow-hidden">
         {isLoading ? (
-          <div className="text-sm text-muted-foreground">Učitavam...</div>
+          <div className="p-6 text-sm text-muted-foreground">Učitavam...</div>
         ) : rows.length === 0 ? (
-          <div className="pirate-card rounded-xl p-8 text-center text-sm text-muted-foreground">
+          <div className="p-8 text-center text-sm text-muted-foreground">
             Nema unosa za ovaj period.
           </div>
         ) : (
-          rows.map((r) => (
-            <div
-              key={`${r.rank}-${r.ikariam_username}`}
-              className="grid grid-cols-12 items-center gap-3 px-4 py-2.5 rounded-lg bg-card/60 border border-border hover:border-gold/30 transition"
-            >
-              <div className="col-span-2 sm:col-span-1 font-display text-gold text-lg">
-                #{r.rank}
-              </div>
-              <div className="col-span-6 sm:col-span-5 min-w-0">
-                <div className="font-medium truncate">{r.ikariam_username}</div>
-              </div>
-              <div className="col-span-4 sm:col-span-2 text-right font-display text-base">
-                {r.pirate_points.toLocaleString("bs-BA")}
-              </div>
-              <div className="col-span-12 sm:col-span-4 text-right text-xs text-muted-foreground">
-                <span className="text-gold/80">{r.submitted_by}</span>
-                {" · "}
-                {new Date(r.created_at).toLocaleString("bs-BA")}
-              </div>
-            </div>
-          ))
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-[10px] uppercase tracking-widest text-muted-foreground bg-card/40">
+                <tr>
+                  <th className="text-right py-2.5 pl-4 pr-2 w-16">Rank</th>
+                  <th className="text-left py-2.5 px-2">Username</th>
+                  <th className="text-right py-2.5 px-2">Poeni</th>
+                  <th className="text-left py-2.5 px-2">Savez</th>
+                  <th className="text-left py-2.5 px-2">Koordinate</th>
+                  <th className="text-left py-2.5 px-2">Grad</th>
+                  <th className="text-right py-2.5 pr-4 pl-2">Uneseno</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr
+                    key={`${r.rank}-${r.ikariam_username}`}
+                    className="border-t border-border hover:bg-card/60"
+                  >
+                    <td className="py-2 pl-4 pr-2 text-right font-display text-gold">
+                      #{r.rank}
+                    </td>
+                    <td className="py-2 px-2 font-medium truncate max-w-[16rem]">
+                      {r.ikariam_username}
+                    </td>
+                    <td className="py-2 px-2 text-right tabular-nums">
+                      {r.pirate_points.toLocaleString("bs-BA")}
+                    </td>
+                    <td className="py-2 px-2 text-muted-foreground">
+                      {r.alliance_tag ?? "—"}
+                    </td>
+                    <td className="py-2 px-2">
+                      <CoordsLink coords={r.coordinates ?? ""} />
+                    </td>
+                    <td className="py-2 px-2 text-muted-foreground truncate max-w-[12rem]">
+                      {r.city_name ?? "—"}
+                    </td>
+                    <td className="py-2 pr-4 pl-2 text-right text-[10px] text-muted-foreground">
+                      <div className="text-gold/80">{r.submitted_by}</div>
+                      <div>{new Date(r.created_at).toLocaleString("bs-BA")}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
