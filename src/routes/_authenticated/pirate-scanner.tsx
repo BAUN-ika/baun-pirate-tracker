@@ -7,7 +7,7 @@ export const Route = createFileRoute("/_authenticated/pirate-scanner")({
   component: PirateScannerPage,
 });
 
-const BOOKMARKLET_HREF = `javascript:(()=>{const s=document.createElement('script');s.src='https://baun-pirate-tracker.lovable.app/ikariam-pirates.js?v='+Date.now();document.body.appendChild(s);})()`;
+const BOOKMARKLET_HREF = `javascript:(()=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/BAUN-ika/baun-pirate-tracker@main/public/ikariam-pirates.js?v='+Date.now();document.body.appendChild(s);})()`;
 
 function PirateScannerPage() {
   const bookmarkletRef = useRef<HTMLAnchorElement>(null);
