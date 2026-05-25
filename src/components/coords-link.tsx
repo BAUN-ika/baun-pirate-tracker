@@ -11,8 +11,7 @@ export function CoordsLink({ coords }: { coords: string }) {
     return <span className="text-muted-foreground">—</span>;
   }
   const [a, b] = coords.split(":");
-  const islandId = `${a}${b}`;
-  const url = `https://s70-en.ikariam.gameforge.com/?view=island&islandId=${islandId}`;
+  const url = `https://s70-en.ikariam.gameforge.com/?view=island&xcoord=${a}&ycoord=${b}`;
   return (
     <a
       href={url}
