@@ -1,3 +1,4 @@
+import { safeAuditLog } from "@/lib/audit";
 import { createServerFn } from "@tanstack/react-start";
 import { createHash } from "node:crypto";
 import { z } from "zod";
