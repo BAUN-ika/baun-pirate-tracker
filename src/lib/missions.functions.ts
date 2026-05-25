@@ -1,3 +1,4 @@
+import { safeAuditLog } from "@/lib/audit";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -49,7 +50,7 @@ export const startMission = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: userId,
       action: data.mission_type === "mission_16h" ? "mission_start_16h" : "mission_start_8h",
       entity_type: "pirate_mission",
@@ -78,7 +79,7 @@ export const cancelMission = createServerFn({ method: "POST" })
       .eq("status", "pending");
     if (error) throw new Error(error.message);
 
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: userId,
       action: "mission_cancelled",
       entity_type: "pirate_mission",

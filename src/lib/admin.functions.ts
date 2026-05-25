@@ -1,3 +1,4 @@
+import { safeAuditLog } from "@/lib/audit";
 import { createServerFn } from "@tanstack/react-start";
 import { createHash } from "node:crypto";
 import { z } from "zod";
@@ -34,7 +35,7 @@ export const setBaunPasscode = createServerFn({ method: "POST" })
       })
       .eq("id", 1);
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: context.userId,
       action: "change_passcode",
       entity_type: "app_settings",
@@ -57,7 +58,7 @@ export const assignRole = createServerFn({ method: "POST" })
       .from("user_roles")
       .insert({ user_id: data.target_user_id, role: data.role });
     if (error && !/duplicate key/i.test(error.message)) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: context.userId,
       action: "assign_role",
       entity_type: "user_role",
@@ -82,7 +83,7 @@ export const removeRole = createServerFn({ method: "POST" })
       .eq("user_id", data.target_user_id)
       .eq("role", data.role);
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: context.userId,
       action: "remove_role",
       entity_type: "user_role",
@@ -107,7 +108,7 @@ export const setUserActive = createServerFn({ method: "POST" })
       .update({ is_active: data.is_active })
       .eq("id", data.target_user_id);
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: context.userId,
       action: data.is_active ? "activate_user" : "deactivate_user",
       entity_type: "profile",
@@ -128,7 +129,7 @@ export const deleteUser = createServerFn({ method: "POST" })
     }
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.target_user_id);
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: context.userId,
       action: "delete_user",
       entity_type: "profile",

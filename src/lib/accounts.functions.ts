@@ -1,3 +1,4 @@
+import { safeAuditLog } from "@/lib/audit";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -40,7 +41,7 @@ export const addAccount = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: userId,
       action: "add_account",
       entity_type: "ikariam_account",
@@ -74,7 +75,7 @@ export const updateAccountCoordinates = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: userId,
       action: "update_coordinates",
       entity_type: "ikariam_account",
@@ -106,7 +107,7 @@ export const updateAccountPoints = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: userId,
       action: "update_points",
       entity_type: "ikariam_account",
@@ -129,7 +130,7 @@ export const deleteAccount = createServerFn({ method: "POST" })
       .eq("id", data.account_id)
       .eq("owner_user_id", userId);
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: userId,
       action: "delete_account",
       entity_type: "ikariam_account",
@@ -174,7 +175,7 @@ export const collectPoints = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: userId,
       action: "collect_points",
       entity_type: "ikariam_account",
