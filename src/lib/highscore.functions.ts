@@ -119,7 +119,7 @@ export const submitHighscore = createServerFn({ method: "POST" })
 
       if (!match) {
         cpResult = { username: uname, points: newPoints, status: "no_match" };
-        await supabaseAdmin.from("audit_logs").insert({
+        await safeAuditLog(context.supabase, {
           user_id: userId,
           action: "current_player_points_sync_no_matching_account",
           entity_type: "highscore_submission",
@@ -150,7 +150,7 @@ export const submitHighscore = createServerFn({ method: "POST" })
           status: "updated",
           previous_points: previous,
         };
-        await supabaseAdmin.from("audit_logs").insert({
+        await safeAuditLog(context.supabase, {
           user_id: userId,
           action: "current_player_points_synced_to_account",
           entity_type: "ikariam_account",
@@ -177,7 +177,7 @@ export const submitHighscore = createServerFn({ method: "POST" })
             ? "current_player_points_submission_created"
             : "highscore_mixed_submission_created";
 
-    await supabaseAdmin.from("audit_logs").insert({
+    await safeAuditLog(context.supabase, {
       user_id: userId,
       action,
       entity_type: "highscore_submission",
