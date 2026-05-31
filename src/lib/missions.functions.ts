@@ -96,3 +96,56 @@ export const completeDueMissions = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { completed: (data as number) ?? 0 };
   });
+
+const BulkSchema = z.object({
+  mission_type: z.enum(["mission_8h", "mission_16h"]),
+});
+
+export const startBulkMissionForMyAccounts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => BulkSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: accs, error: aErr } = await supabase
+      .from("ikariam_accounts")
+      .select("id, ikariam_username")
+      .eq("owner_user_id", userId);
+    if (aErr) throw new Error(aErr.message);
+    if (!accs || accs.length === 0) {
+      return { created: 0, account_ids: [] as string[] };
+    }
+
+    const cfg = MISSION_REWARD[data.mission_type];
+    const startedAt = new Date();
+    const completesAt = new Date(startedAt.getTime() + cfg.hours * 60 * 60 * 1000);
+
+    const rows = accs.map((a) => ({
+      ikariam_account_id: a.id,
+      user_id: userId,
+      mission_type: data.mission_type,
+      reward_points: cfg.reward,
+      started_at: startedAt.toISOString(),
+      completes_at: completesAt.toISOString(),
+      status: "pending" as const,
+    }));
+
+    const { error } = await supabase.from("pirate_missions").insert(rows);
+    if (error) throw new Error(error.message);
+
+    await safeAuditLog(context.supabase, {
+      user_id: userId,
+      action: "bulk_mission_started",
+      entity_type: "pirate_mission",
+      metadata: {
+        mission_type: data.mission_type,
+        reward_points: cfg.reward,
+        number_of_accounts: accs.length,
+        account_ids: accs.map((a) => a.id),
+        started_at: startedAt.toISOString(),
+        completes_at: completesAt.toISOString(),
+      },
+    });
+
+    return { created: accs.length, account_ids: accs.map((a) => a.id) };
+  });
