@@ -28,23 +28,52 @@ function useHighscore(period: Period) {
   return useQuery({
     queryKey: ["highscore", period.start.toISOString()],
     queryFn: async (): Promise<Row[]> => {
-      const { data, error } = await supabase
-        .from("highscore_entries")
-        .select(
-          "rank, ikariam_username, pirate_points, alliance_tag, coordinates, city_name, submitted_by_user_id, created_at",
-        )
-        .gte("period_start", period.start.toISOString())
-        .lt("period_start", period.end.toISOString())
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      // Dedupe by (rank, username) — keep most recent (data already ordered desc by created_at)
+      // Paginate to bypass PostgREST default 1000-row cap.
+      const PAGE = 1000;
+      let from = 0;
+      type Raw = {
+        rank: number;
+        ikariam_username: string;
+        pirate_points: number;
+        alliance_tag: string | null;
+        coordinates: string | null;
+        city_name: string | null;
+        submitted_by_user_id: string;
+        created_at: string;
+      };
+      const all: Raw[] = [];
+      while (from < 50_000) {
+        const { data, error } = await supabase
+          .from("highscore_entries")
+          .select(
+            "rank, ikariam_username, pirate_points, alliance_tag, coordinates, city_name, submitted_by_user_id, created_at",
+          )
+          .gte("period_start", period.start.toISOString())
+          .lt("period_start", period.end.toISOString())
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...(data as Raw[]));
+        if (data.length < PAGE) break;
+        from += PAGE;
+      }
+      if (import.meta.env.DEV) {
+        console.debug(
+          `[highscore] period ${period.start.toISOString()} → ${all.length} raw rows`,
+        );
+      }
+      // Dedupe by (rank, username) — keep most recent (already ordered desc by created_at)
       const seen = new Set<string>();
-      const deduped: typeof data = [];
-      for (const r of data) {
+      const deduped: Raw[] = [];
+      for (const r of all) {
         const k = `${r.rank}::${r.ikariam_username.toLowerCase()}`;
         if (seen.has(k)) continue;
         seen.add(k);
         deduped.push(r);
+      }
+      if (import.meta.env.DEV) {
+        console.debug(`[highscore] after dedup: ${deduped.length} rows`);
       }
       const ids = Array.from(new Set(deduped.map((r) => r.submitted_by_user_id)));
       const profiles =
