@@ -248,6 +248,12 @@ function AccountsPage() {
         }
       />
 
+      <BulkMissionsCard
+        accountCount={(accounts.data ?? []).length}
+        busy={bulkMut.isPending}
+        onRun={(type) => bulkMut.mutate(type)}
+      />
+
       {accounts.isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
