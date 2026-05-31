@@ -40,6 +40,7 @@ import {
 import {
   cancelMission,
   completeDueMissions,
+  startBulkMissionForMyAccounts,
   startMission,
 } from "@/lib/missions.functions";
 import { CoordsLink, validCoords } from "@/components/coords-link";
@@ -62,6 +63,7 @@ function AccountsPage() {
   const startMissionFn = useServerFn(startMission);
   const cancelMissionFn = useServerFn(cancelMission);
   const completeDueFn = useServerFn(completeDueMissions);
+  const bulkMissionFn = useServerFn(startBulkMissionForMyAccounts);
 
   // Best-effort auto-completion of due missions whenever this page is opened.
   useEffect(() => {
@@ -155,6 +157,22 @@ function AccountsPage() {
     onError: (e: any) => toast.error("Greška", { description: e?.message }),
   });
 
+  const bulkMut = useMutation({
+    mutationFn: (type: "mission_8h" | "mission_16h") =>
+      bulkMissionFn({ data: { mission_type: type } }),
+    onSuccess: (res, type) => {
+      if (res.created === 0) {
+        toast.error("Nemaš nijedan Ikariam nalog za pokretanje misije.");
+        return;
+      }
+      const label = type === "mission_8h" ? "8h" : "16h";
+      toast.success(`${label} misija je pokrenuta za ${res.created} naloga.`);
+      qc.invalidateQueries({ queryKey: ["my-missions"] });
+      qc.invalidateQueries({ queryKey: ["all-missions"] });
+    },
+    onError: () => toast.error("Greška pri pokretanju masovne misije."),
+  });
+
   const missionsByAccount = new Map<string, any[]>();
   for (const m of missions.data ?? []) {
     const arr = missionsByAccount.get(m.ikariam_account_id) ?? [];
@@ -228,6 +246,12 @@ function AccountsPage() {
             </DialogContent>
           </Dialog>
         }
+      />
+
+      <BulkMissionsCard
+        accountCount={(accounts.data ?? []).length}
+        busy={bulkMut.isPending}
+        onRun={(type: "mission_8h" | "mission_16h") => bulkMut.mutate(type)}
       />
 
       {accounts.isLoading ? (
@@ -530,5 +554,85 @@ function MissionProgressInline({
       </div>
       <Progress value={pct} className="h-1.5" />
     </div>
+  );
+}
+
+function BulkMissionsCard({
+  accountCount,
+  busy,
+  onRun,
+}: {
+  accountCount: number;
+  busy: boolean;
+  onRun: (type: "mission_8h" | "mission_16h") => void;
+}) {
+  const disabled = accountCount === 0 || busy;
+  return (
+    <div className="pirate-card rounded-2xl p-6 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <Timer className="size-5 text-gold" />
+            <h2 className="font-display text-xl">Masovne misije</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Pokreni istu piratsku misiju za sve svoje Ikariam naloge jednim
+            klikom.
+          </p>
+          {accountCount === 0 && (
+            <p className="text-xs text-destructive mt-2">
+              Dodaj barem jedan Ikariam nalog da bi mogao pokrenuti masovnu misiju.
+            </p>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-2 md:flex md:gap-2 shrink-0">
+          <BulkConfirmButton
+            label="8h misija za sve"
+            disabled={disabled}
+            description={`Pokrenuti 8h misiju za sve tvoje naloge? Svaki nalog će dobiti +4634 poena kada misija istekne.`}
+            onConfirm={() => onRun("mission_8h")}
+          />
+          <BulkConfirmButton
+            label="16h misija za sve"
+            disabled={disabled}
+            description={`Pokrenuti 16h misiju za sve tvoje naloge? Svaki nalog će dobiti +7414 poena kada misija istekne.`}
+            onConfirm={() => onRun("mission_16h")}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BulkConfirmButton({
+  label,
+  description,
+  disabled,
+  onConfirm,
+}: {
+  label: string;
+  description: string;
+  disabled: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="secondary" size="sm" disabled={disabled}>
+          <Ship className="size-3.5 mr-1.5" />
+          {label}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Masovna misija</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Otkaži</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>Pokreni</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
