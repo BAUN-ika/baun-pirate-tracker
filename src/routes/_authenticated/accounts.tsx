@@ -157,6 +157,22 @@ function AccountsPage() {
     onError: (e: any) => toast.error("Greška", { description: e?.message }),
   });
 
+  const bulkMut = useMutation({
+    mutationFn: (type: "mission_8h" | "mission_16h") =>
+      bulkMissionFn({ data: { mission_type: type } }),
+    onSuccess: (res, type) => {
+      if (res.created === 0) {
+        toast.error("Nemaš nijedan Ikariam nalog za pokretanje misije.");
+        return;
+      }
+      const label = type === "mission_8h" ? "8h" : "16h";
+      toast.success(`${label} misija je pokrenuta za ${res.created} naloga.`);
+      qc.invalidateQueries({ queryKey: ["my-missions"] });
+      qc.invalidateQueries({ queryKey: ["all-missions"] });
+    },
+    onError: () => toast.error("Greška pri pokretanju masovne misije."),
+  });
+
   const missionsByAccount = new Map<string, any[]>();
   for (const m of missions.data ?? []) {
     const arr = missionsByAccount.get(m.ikariam_account_id) ?? [];
