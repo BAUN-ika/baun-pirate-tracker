@@ -63,6 +63,7 @@ function AccountsPage() {
   const startMissionFn = useServerFn(startMission);
   const cancelMissionFn = useServerFn(cancelMission);
   const completeDueFn = useServerFn(completeDueMissions);
+  const bulkMissionFn = useServerFn(startBulkMissionForMyAccounts);
 
   // Best-effort auto-completion of due missions whenever this page is opened.
   useEffect(() => {
