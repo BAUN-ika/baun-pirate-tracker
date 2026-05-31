@@ -251,7 +251,7 @@ function AccountsPage() {
       <BulkMissionsCard
         accountCount={(accounts.data ?? []).length}
         busy={bulkMut.isPending}
-        onRun={(type) => bulkMut.mutate(type)}
+        onRun={(type: "mission_8h" | "mission_16h") => bulkMut.mutate(type)}
       />
 
       {accounts.isLoading ? (
