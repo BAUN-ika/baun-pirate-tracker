@@ -556,3 +556,83 @@ function MissionProgressInline({
     </div>
   );
 }
+
+function BulkMissionsCard({
+  accountCount,
+  busy,
+  onRun,
+}: {
+  accountCount: number;
+  busy: boolean;
+  onRun: (type: "mission_8h" | "mission_16h") => void;
+}) {
+  const disabled = accountCount === 0 || busy;
+  return (
+    <div className="pirate-card rounded-2xl p-6 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <Timer className="size-5 text-gold" />
+            <h2 className="font-display text-xl">Masovne misije</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Pokreni istu piratsku misiju za sve svoje Ikariam naloge jednim
+            klikom.
+          </p>
+          {accountCount === 0 && (
+            <p className="text-xs text-destructive mt-2">
+              Dodaj barem jedan Ikariam nalog da bi mogao pokrenuti masovnu misiju.
+            </p>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-2 md:flex md:gap-2 shrink-0">
+          <BulkConfirmButton
+            label="8h misija za sve"
+            disabled={disabled}
+            description={`Pokrenuti 8h misiju za sve tvoje naloge? Svaki nalog će dobiti +4634 poena kada misija istekne.`}
+            onConfirm={() => onRun("mission_8h")}
+          />
+          <BulkConfirmButton
+            label="16h misija za sve"
+            disabled={disabled}
+            description={`Pokrenuti 16h misiju za sve tvoje naloge? Svaki nalog će dobiti +7414 poena kada misija istekne.`}
+            onConfirm={() => onRun("mission_16h")}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BulkConfirmButton({
+  label,
+  description,
+  disabled,
+  onConfirm,
+}: {
+  label: string;
+  description: string;
+  disabled: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="secondary" size="sm" disabled={disabled}>
+          <Ship className="size-3.5 mr-1.5" />
+          {label}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Masovna misija</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Otkaži</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm}>Pokreni</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
