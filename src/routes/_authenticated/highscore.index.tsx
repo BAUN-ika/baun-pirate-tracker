@@ -63,17 +63,19 @@ function useHighscore(period: Period) {
           `[highscore] period ${period.start.toISOString()} → ${all.length} raw rows`,
         );
       }
-      // Dedupe by (rank, username) — keep most recent (already ordered desc by created_at)
+      // Dedupe by username — keep most recent entry per player (already ordered desc by created_at).
+      // Ovo sprječava da isti igrač zauzima više redova kad se rank promijeni između submita,
+      // i osigurava da svaki igrač uvijek pokazuje svoj najnoviji poznati rank.
       const seen = new Set<string>();
       const deduped: Raw[] = [];
       for (const r of all) {
-        const k = `${r.rank}::${r.ikariam_username.toLowerCase()}`;
+        const k = r.ikariam_username.trim().toLowerCase();
         if (seen.has(k)) continue;
         seen.add(k);
         deduped.push(r);
       }
       if (import.meta.env.DEV) {
-        console.debug(`[highscore] after dedup: ${deduped.length} rows`);
+        console.debug(`[highscore] after dedup by username: ${deduped.length} rows`);
       }
       const ids = Array.from(new Set(deduped.map((r) => r.submitted_by_user_id)));
       const profiles =
