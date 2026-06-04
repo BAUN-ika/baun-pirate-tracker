@@ -10,6 +10,7 @@ import {
   Settings,
   Ship,
   Skull,
+  Target,
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ const NAV: NavItem[] = [
   { label: "Pirate Scanner", to: "/pirate-scanner", icon: Radar },
   { label: "Highscore unos", to: "/highscore/submit", icon: Upload },
   { label: "Highscore lista", to: "/highscore", icon: ListOrdered },
+  { label: "Piratski klasteri", to: "/clusters", icon: Target },
   { label: "Audit log", to: "/audit", icon: FileClock },
   { label: "Admin panel", to: "/admin", icon: Settings, roles: ["admin"] },
 ];

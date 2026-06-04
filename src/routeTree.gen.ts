@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPointsRouteImport } from './routes/_authenticated/points'
 import { Route as AuthenticatedPirateScannerRouteImport } from './routes/_authenticated/pirate-scanner'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedClustersRouteImport } from './routes/_authenticated/clusters'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/audit'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
@@ -57,6 +58,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedClustersRoute = AuthenticatedClustersRouteImport.update({
+  id: '/clusters',
+  path: '/clusters',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAuditRoute = AuthenticatedAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/accounts': typeof AuthenticatedAccountsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/audit': typeof AuthenticatedAuditRoute
+  '/clusters': typeof AuthenticatedClustersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/accounts': typeof AuthenticatedAccountsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/audit': typeof AuthenticatedAuditRoute
+  '/clusters': typeof AuthenticatedClustersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
+  '/_authenticated/clusters': typeof AuthenticatedClustersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/_authenticated/points': typeof AuthenticatedPointsRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/admin'
     | '/audit'
+    | '/clusters'
     | '/dashboard'
     | '/pirate-scanner'
     | '/points'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/admin'
     | '/audit'
+    | '/clusters'
     | '/dashboard'
     | '/pirate-scanner'
     | '/points'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/_authenticated/accounts'
     | '/_authenticated/admin'
     | '/_authenticated/audit'
+    | '/_authenticated/clusters'
     | '/_authenticated/dashboard'
     | '/_authenticated/pirate-scanner'
     | '/_authenticated/points'
@@ -227,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/clusters': {
+      id: '/_authenticated/clusters'
+      path: '/clusters'
+      fullPath: '/clusters'
+      preLoaderRoute: typeof AuthenticatedClustersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/audit': {
       id: '/_authenticated/audit'
       path: '/audit'
@@ -269,6 +288,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
+  AuthenticatedClustersRoute: typeof AuthenticatedClustersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedPirateScannerRoute: typeof AuthenticatedPirateScannerRoute
   AuthenticatedPointsRoute: typeof AuthenticatedPointsRoute
@@ -280,6 +300,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAccountsRoute: AuthenticatedAccountsRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
+  AuthenticatedClustersRoute: AuthenticatedClustersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedPirateScannerRoute: AuthenticatedPirateScannerRoute,
   AuthenticatedPointsRoute: AuthenticatedPointsRoute,
