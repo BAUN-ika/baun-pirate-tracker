@@ -202,7 +202,7 @@
       } catch (copyError) {
         showManualCopyBox(result);
         alert(
-          "Pirate data prepared. Browser blocked automatic copy, so copy it manually from the box.",
+          "Nele kralj :D Ovu poruku ispisuje bigdataspecialist sa discorda :D",
         );
       }
     } catch (error) {
