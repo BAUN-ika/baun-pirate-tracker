@@ -137,3 +137,32 @@ export const deleteUser = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+export const totalResetPiratePoints = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireAdmin(context.userId);
+
+    // Reset svih piratskih poena na 0 (svi nalozi, svih korisnika)
+    const { error: accErr, count } = await supabaseAdmin
+      .from("ikariam_accounts")
+      .update({ current_pirate_points: 0, last_updated_at: new Date().toISOString() }, { count: "exact" })
+      .gte("current_pirate_points", 0);
+    if (accErr) throw new Error(accErr.message);
+
+    // Otkaži sve pending misije (start ispočetka)
+    const { error: misErr } = await supabaseAdmin
+      .from("pirate_missions")
+      .update({ status: "cancelled", completed_at: new Date().toISOString() })
+      .eq("status", "pending");
+    if (misErr) throw new Error(misErr.message);
+
+    await safeAuditLog(context.supabase, {
+      user_id: context.userId,
+      action: "total_reset_pirate_points",
+      entity_type: "ikariam_accounts",
+      metadata: { accounts_reset: count ?? null },
+    });
+    return { ok: true, accounts_reset: count ?? 0 };
+  });
+

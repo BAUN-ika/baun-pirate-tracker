@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { KeyRound, ShieldCheck, Trash2 } from "lucide-react";
+import { KeyRound, ShieldCheck, Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -34,6 +34,7 @@ import {
   removeRole,
   setBaunPasscode,
   setUserActive,
+  totalResetPiratePoints,
 } from "@/lib/admin.functions";
 import { useCurrentUser, type AppRole } from "@/hooks/use-current-user";
 
@@ -61,7 +62,7 @@ function AdminPage() {
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PasscodeCard />
-        <div />
+        <TotalResetCard />
       </div>
       <UsersTable />
     </div>
@@ -107,6 +108,70 @@ function PasscodeCard() {
     </div>
   );
 }
+
+function TotalResetCard() {
+  const qc = useQueryClient();
+  const fn = useServerFn(totalResetPiratePoints);
+  const [confirm, setConfirm] = useState("");
+  const mut = useMutation({
+    mutationFn: () => fn(),
+    onSuccess: (res: any) => {
+      toast.success("Totalni reset izvršen", {
+        description: `Resetovano naloga: ${res?.accounts_reset ?? 0}. Igra kreće ispočetka.`,
+      });
+      setConfirm("");
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+  return (
+    <div className="pirate-card rounded-2xl p-6 border-destructive/40">
+      <div className="flex items-center gap-2 mb-1">
+        <AlertTriangle className="size-4 text-destructive" />
+        <h2 className="font-display text-lg">Totalni reset</h2>
+      </div>
+      <p className="text-xs text-muted-foreground mb-4">
+        Resetuje piratske poene <b>svih naloga svih korisnika</b> na 0 i otkazuje sve aktivne misije. Igra kreće ispočetka. Akcija je nepovratna.
+      </p>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" className="w-full">
+            <AlertTriangle className="size-4" /> Totalni reset svih piratskih poena
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Potvrdi totalni reset</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ovo će resetovati piratske poene <b>SVIH naloga SVIH korisnika</b> na 0 i otkazati sve aktivne misije. Ukucaj <b>RESET</b> za potvrdu.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Input
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Ukucaj RESET"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirm("")}>Otkaži</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirm !== "RESET" || mut.isPending}
+              onClick={(e) => {
+                if (confirm !== "RESET") {
+                  e.preventDefault();
+                  return;
+                }
+                mut.mutate();
+              }}
+            >
+              {mut.isPending ? "Resetujem..." : "Resetuj sve"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 
 function UsersTable() {
   const qc = useQueryClient();
