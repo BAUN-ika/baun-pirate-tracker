@@ -34,6 +34,7 @@ import {
   removeRole,
   setBaunPasscode,
   setUserActive,
+  totalResetPiratePoints,
 } from "@/lib/admin.functions";
 import { useCurrentUser, type AppRole } from "@/hooks/use-current-user";
 
