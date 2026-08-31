@@ -119,10 +119,64 @@ export function parseLine(raw: string): ParsedRow {
   return { raw: trimmed, valid: false, reason: "Format ne odgovara" };
 }
 
+// Mobile multiline format:
+//   "397 ."
+//   "7,414  Capture Points"   (labela može biti na bilo kom jeziku)
+//   "Nani"
+const MOBILE_RANK_RE = /^\s*(\d+)\s*\.\s*$/;
+const MOBILE_POINTS_RE = /^\s*([\d][\d.,]*)\s*(.*)$/;
+
 export function parseHighscoreText(text: string): ParsedRow[] {
-  return text
+  const lines = text
     .split(/\r?\n/)
-    .map((l) => l)
-    .filter((l) => l.trim().length > 0)
-    .map(parseLine);
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  const out: ParsedRow[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const mRank = line.match(MOBILE_RANK_RE);
+
+    if (mRank) {
+      const pointsLine = lines[i + 1];
+      const nameLine = lines[i + 2];
+      const mPoints = pointsLine ? pointsLine.match(MOBILE_POINTS_RE) : null;
+      const label = mPoints ? mPoints[2].trim() : "";
+      const usernameOk =
+        !!nameLine && !MOBILE_RANK_RE.test(nameLine) && !/^\d/.test(nameLine);
+
+      if (mPoints && label.length > 0 && usernameOk) {
+        const rank = parseInt(mRank[1], 10);
+        const points = toInt(mPoints[1]);
+        if (Number.isFinite(rank) && Number.isFinite(points)) {
+          out.push({
+            raw: [line, pointsLine, nameLine].join(" "),
+            valid: true,
+            kind: "manual",
+            rank,
+            piratePoints: points,
+            ikariamUsername: nameLine.trim(),
+            allianceTag: null,
+            coordinates: null,
+            cityName: null,
+          });
+          i += 2;
+          continue;
+        }
+      }
+
+      out.push({
+        raw: [line, pointsLine, nameLine].filter(Boolean).join(" ").trim(),
+        valid: false,
+        reason: "Nepotpun mobilni blok (rank / poeni / username)",
+      });
+      continue;
+    }
+
+    out.push(parseLine(line));
+  }
+
+  return out;
 }
+
