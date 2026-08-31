@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Search, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -130,9 +130,8 @@ export function UserAccountsOverview() {
                   0,
                 );
                 return (
-                  <>
+                  <Fragment key={u.id}>
                     <tr
-                      key={u.id}
                       className="border-t border-border cursor-pointer hover:bg-background/40"
                       onClick={() =>
                         setOpen((o) => ({ ...o, [u.id]: !o[u.id] }))
@@ -153,7 +152,7 @@ export function UserAccountsOverview() {
                       </td>
                     </tr>
                     {isOpen && (
-                      <tr key={`${u.id}-details`} className="border-t border-border/50">
+                      <tr className="border-t border-border/50">
                         <td colSpan={5} className="px-3 py-3 bg-background/30">
                           {u.accounts.length === 0 ? (
                             <p className="text-xs text-muted-foreground">
@@ -186,7 +185,7 @@ export function UserAccountsOverview() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })
             )}
