@@ -99,6 +99,92 @@ export const submitHighscore = createServerFn({ method: "POST" })
       }));
       const { error: eErr } = await supabase.from("highscore_entries").insert(rows);
       if (eErr) throw new Error(eErr.message);
+
+      // --- Sinhronizacija sa "Piratski poeni saveza" ---
+      // Highscore smije prepisati poene naloga SAMO ako nema ručnog unosa,
+      // završene misije ili pokupljanja nakon posljednje granice 18:00 (Europe/Sarajevo).
+      const boundary = start; // posljednja 18:00 granica
+      const { data: allAccounts } = await supabaseAdmin
+        .from("ikariam_accounts")
+        .select(
+          "id, ikariam_username, current_pirate_points, points_source, points_authoritative_at",
+        );
+
+      const byName = new Map<
+        string,
+        NonNullable<typeof allAccounts>[number]
+      >();
+      for (const a of allAccounts ?? []) {
+        byName.set(a.ikariam_username.trim().toLowerCase(), a);
+      }
+
+      // Najnoviji entry po igraču (najveći rank-red zadnji pobjeđuje nije bitno — uzmi zadnji)
+      const latestByName = new Map<string, (typeof entryRows)[number]>();
+      for (const r of entryRows) {
+        latestByName.set(r.ikariamUsername!.trim().toLowerCase(), r);
+      }
+
+      for (const [key, entry] of latestByName) {
+        const acc = byName.get(key);
+        if (!acc) continue;
+
+        const authAt = acc.points_authoritative_at
+          ? new Date(acc.points_authoritative_at)
+          : null;
+        const protectedSource =
+          acc.points_source === "manual" ||
+          acc.points_source === "mission" ||
+          acc.points_source === "collected";
+        const isProtected =
+          protectedSource && !!authAt && authAt.getTime() >= boundary.getTime();
+
+        if (isProtected) {
+          await safeAuditLog(context.supabase, {
+            user_id: userId,
+            action: "highscore_points_sync_skipped",
+            entity_type: "ikariam_account",
+            entity_id: acc.id,
+            metadata: {
+              ikariam_username: acc.ikariam_username,
+              highscore_points: entry.piratePoints!,
+              current_points: acc.current_pirate_points,
+              current_points_source: acc.points_source,
+              current_points_authoritative_at: acc.points_authoritative_at,
+              reason: "manual_or_mission_update_after_18_boundary",
+            },
+          });
+          continue;
+        }
+
+        if (acc.current_pirate_points === entry.piratePoints!) continue;
+
+        const previous = acc.current_pirate_points;
+        const { error: upErr } = await supabaseAdmin
+          .from("ikariam_accounts")
+          .update({
+            current_pirate_points: entry.piratePoints!,
+            last_updated_at: new Date().toISOString(),
+            points_source: "highscore",
+            // NE diramo points_authoritative_at — highscore nije autoritativan izvor
+          })
+          .eq("id", acc.id);
+        if (upErr) throw new Error(upErr.message);
+
+        await safeAuditLog(context.supabase, {
+          user_id: userId,
+          action: "highscore_points_synced_to_account",
+          entity_type: "ikariam_account",
+          entity_id: acc.id,
+          metadata: {
+            ikariam_username: acc.ikariam_username,
+            previous_points: previous,
+            new_points: entry.piratePoints!,
+            highscore_rank: entry.rank!,
+            submitted_by_user_id: userId,
+            submission_id: submission.id,
+          },
+        });
+      }
     }
 
     // Process CURRENT_PLAYER (use first one if multiple)
@@ -142,6 +228,7 @@ export const submitHighscore = createServerFn({ method: "POST" })
           .update({
             current_pirate_points: newPoints,
             last_updated_at: new Date().toISOString(),
+            points_source: "highscore",
           })
           .eq("id", match.id);
         if (upErr) throw new Error(upErr.message);

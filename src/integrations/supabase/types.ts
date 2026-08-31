@@ -165,6 +165,8 @@ export type Database = {
           last_collected_at: string | null
           last_updated_at: string
           owner_user_id: string
+          points_authoritative_at: string | null
+          points_source: string
         }
         Insert: {
           collected_by_user_id?: string | null
@@ -176,6 +178,8 @@ export type Database = {
           last_collected_at?: string | null
           last_updated_at?: string
           owner_user_id: string
+          points_authoritative_at?: string | null
+          points_source?: string
         }
         Update: {
           collected_by_user_id?: string | null
@@ -187,6 +191,8 @@ export type Database = {
           last_collected_at?: string | null
           last_updated_at?: string
           owner_user_id?: string
+          points_authoritative_at?: string | null
+          points_source?: string
         }
         Relationships: []
       }

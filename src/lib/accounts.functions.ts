@@ -37,6 +37,8 @@ export const addAccount = createServerFn({ method: "POST" })
         current_pirate_points: data.current_pirate_points ?? 0,
         fortress_coordinates: data.fortress_coordinates,
         last_updated_at: new Date().toISOString(),
+        points_source: "manual",
+        points_authoritative_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -101,6 +103,8 @@ export const updateAccountPoints = createServerFn({ method: "POST" })
       .update({
         current_pirate_points: data.points,
         last_updated_at: new Date().toISOString(),
+        points_source: "manual",
+        points_authoritative_at: new Date().toISOString(),
       })
       .eq("id", data.account_id)
       .eq("owner_user_id", userId)
@@ -170,6 +174,8 @@ export const collectPoints = createServerFn({ method: "POST" })
         last_collected_at: now,
         collected_by_user_id: userId,
         last_updated_at: now,
+        points_source: "collected",
+        points_authoritative_at: now,
       })
       .eq("id", data.account_id)
       .select()
