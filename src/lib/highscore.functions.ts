@@ -228,6 +228,7 @@ export const submitHighscore = createServerFn({ method: "POST" })
           .update({
             current_pirate_points: newPoints,
             last_updated_at: new Date().toISOString(),
+            points_source: "highscore",
           })
           .eq("id", match.id);
         if (upErr) throw new Error(upErr.message);
