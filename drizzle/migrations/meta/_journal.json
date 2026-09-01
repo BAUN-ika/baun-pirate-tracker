@@ -8,6 +8,13 @@
       "when": 1788188412044,
       "tag": "0000_add_points_source_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788249702146,
+      "tag": "0001_alliance_relations_and_target_status",
+      "breakpoints": true
     }
   ]
 }
