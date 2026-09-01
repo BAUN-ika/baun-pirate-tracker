@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      alliance_relations: {
+        Row: {
+          alliance_tag: string
+          created_at: string
+          created_by: string | null
+          id: string
+          relation_type: string
+          updated_at: string
+        }
+        Insert: {
+          alliance_tag: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          relation_type: string
+          updated_at?: string
+        }
+        Update: {
+          alliance_tag?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          relation_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           baun_passcode_hash: string
@@ -154,8 +181,57 @@ export type Database = {
         }
         Relationships: []
       }
+      highscore_target_status: {
+        Row: {
+          assigned_by_user_id: string | null
+          assigned_pirate_name: string | null
+          collected_at: string | null
+          collected_by_user_id: string | null
+          created_at: string
+          id: string
+          ikariam_username: string
+          period_start: string
+          rank: number | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by_user_id?: string | null
+          assigned_pirate_name?: string | null
+          collected_at?: string | null
+          collected_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          ikariam_username: string
+          period_start: string
+          rank?: number | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by_user_id?: string | null
+          assigned_pirate_name?: string | null
+          collected_at?: string | null
+          collected_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          ikariam_username?: string
+          period_start?: string
+          rank?: number | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ikariam_accounts: {
         Row: {
+          assigned_by_user_id: string | null
+          assigned_pirate_name: string | null
+          assignment_started_at: string | null
+          assignment_status: string
           collected_by_user_id: string | null
           created_at: string
           current_pirate_points: number
@@ -169,6 +245,10 @@ export type Database = {
           points_source: string
         }
         Insert: {
+          assigned_by_user_id?: string | null
+          assigned_pirate_name?: string | null
+          assignment_started_at?: string | null
+          assignment_status?: string
           collected_by_user_id?: string | null
           created_at?: string
           current_pirate_points?: number
@@ -182,6 +262,10 @@ export type Database = {
           points_source?: string
         }
         Update: {
+          assigned_by_user_id?: string | null
+          assigned_pirate_name?: string | null
+          assignment_started_at?: string | null
+          assignment_status?: string
           collected_by_user_id?: string | null
           created_at?: string
           current_pirate_points?: number
@@ -193,6 +277,51 @@ export type Database = {
           owner_user_id?: string
           points_authoritative_at?: string | null
           points_source?: string
+        }
+        Relationships: []
+      }
+      pirate_cluster_status: {
+        Row: {
+          assigned_by_user_id: string | null
+          assigned_pirate_name: string | null
+          cluster_key: string
+          collected_at: string | null
+          collected_by_user_id: string | null
+          created_at: string
+          id: string
+          period_start: string
+          radius: number
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by_user_id?: string | null
+          assigned_pirate_name?: string | null
+          cluster_key: string
+          collected_at?: string | null
+          collected_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          period_start: string
+          radius: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by_user_id?: string | null
+          assigned_pirate_name?: string | null
+          cluster_key?: string
+          collected_at?: string | null
+          collected_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          period_start?: string
+          radius?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
