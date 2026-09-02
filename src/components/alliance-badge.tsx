@@ -93,7 +93,7 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
   const s = status ?? "ready";
   if (s === "en_route")
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-warning/50 text-warning bg-warning/10 text-[10px] uppercase tracking-widest">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-gold/60 text-gold bg-gold/10 text-[10px] uppercase tracking-widest">
         EN ROUTE
       </span>
     );
