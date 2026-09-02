@@ -38,6 +38,7 @@ import {
 } from "@/lib/admin.functions";
 import { useCurrentUser, type AppRole } from "@/hooks/use-current-user";
 import { UserAccountsOverview } from "@/components/admin-user-accounts-overview";
+import { AllianceRelationsCard } from "@/components/admin-alliance-relations";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
@@ -66,6 +67,7 @@ function AdminPage() {
         <TotalResetCard />
       </div>
       <UsersTable />
+      <AllianceRelationsCard />
       <UserAccountsOverview />
     </div>
   );

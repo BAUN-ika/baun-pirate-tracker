@@ -35,6 +35,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { collectPoints } from "@/lib/accounts.functions";
+import { accountSetEnRoute, accountCancelEnRoute } from "@/lib/targets.functions";
+import { AssignDialog } from "@/components/assign-dialog";
+import { StatusBadge } from "@/components/alliance-badge";
+import { AllianceRelationsCard } from "@/components/admin-alliance-relations";
 import { completeDueMissions } from "@/lib/missions.functions";
 import { CoordsLink } from "@/components/coords-link";
 
@@ -46,14 +50,17 @@ type SortKey = "points" | "username" | "updated";
 
 function PointsPage() {
   const qc = useQueryClient();
-  const { isPirate } = useCurrentUser();
+  const { isPirate, isAdmin } = useCurrentUser();
   const collectFn = useServerFn(collectPoints);
+  const enRouteFn = useServerFn(accountSetEnRoute);
+  const cancelEnRouteFn = useServerFn(accountCancelEnRoute);
   const completeDueFn = useServerFn(completeDueMissions);
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("points");
   const [onlyPositive, setOnlyPositive] = useState(false);
   const [ownerFilter, setOwnerFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     completeDueFn({})
@@ -135,6 +142,8 @@ function PointsPage() {
     }
     if (onlyPositive) xs = xs.filter((r) => r.current_pirate_points > 0);
     if (ownerFilter !== "all") xs = xs.filter((r) => r.owner_user_id === ownerFilter);
+    if (statusFilter !== "all")
+      xs = xs.filter((r) => (r.assignment_status ?? "ready") === statusFilter);
     const sorted = [...xs];
     if (sort === "points")
       sorted.sort((a, b) => b.current_pirate_points - a.current_pirate_points);
@@ -147,7 +156,7 @@ function PointsPage() {
           new Date(a.last_updated_at).getTime(),
       );
     return sorted;
-  }, [all.data, search, sort, onlyPositive, ownerFilter]);
+  }, [all.data, search, sort, onlyPositive, ownerFilter, statusFilter]);
 
   const totalPoints = useMemo(
     () => rows.reduce((sum, r) => sum + (r.current_pirate_points ?? 0), 0),
@@ -165,6 +174,30 @@ function PointsPage() {
     onError: (e: any) => toast.error("Greška", { description: e?.message }),
   });
 
+  const refreshAccounts = () => {
+    qc.invalidateQueries({ queryKey: ["all-accounts"] });
+    qc.invalidateQueries({ queryKey: ["my-accounts"] });
+  };
+
+  const enRouteMut = useMutation({
+    mutationFn: (v: { id: string; pirate_name?: string }) =>
+      enRouteFn({ data: { account_id: v.id, pirate_name: v.pirate_name } }),
+    onSuccess: (r: any) => {
+      toast.success(`Krenuo: ${r?.assigned_pirate_name ?? "—"}`);
+      refreshAccounts();
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+
+  const cancelMut = useMutation({
+    mutationFn: (id: string) => cancelEnRouteFn({ data: { account_id: id } }),
+    onSuccess: () => {
+      toast.success("Assignment otkazan.");
+      refreshAccounts();
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+
   return (
     <div>
       <PageHeader
@@ -172,7 +205,9 @@ function PointsPage() {
         description="Sumarna lista svih naloga i njihovih trenutnih poena."
       />
 
-      <div className="pirate-card rounded-2xl p-4 mb-4 flex flex-col lg:flex-row gap-3">
+      {isPirate && !isAdmin && <AllianceRelationsCard />}
+
+      <div className="pirate-card rounded-2xl p-4 mb-4 mt-4 flex flex-col lg:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
@@ -203,6 +238,16 @@ function PointsPage() {
                 {name}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="lg:w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Svi statusi</SelectItem>
+            <SelectItem value="ready">READY</SelectItem>
+            <SelectItem value="en_route">EN ROUTE</SelectItem>
           </SelectContent>
         </Select>
         <Button
@@ -244,6 +289,7 @@ function PointsPage() {
               ) : (
                 rows.map((r) => {
                   const ready = r.current_pirate_points > 0;
+                  const enRoute = (r.assignment_status ?? "ready") === "en_route";
                   const accMissions = missionsByAccount.get(r.id) ?? [];
                   return (
                     <tr
@@ -275,24 +321,52 @@ function PointsPage() {
                         {new Date(r.last_updated_at).toLocaleString("bs-BA")}
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={
-                            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-widest border " +
-                            (ready
-                              ? "border-success/40 text-success bg-success/10"
-                              : "border-border text-muted-foreground")
-                          }
-                        >
+                        {enRoute ? (
+                          <div className="space-y-1">
+                            <StatusBadge status="en_route" />
+                            <div className="text-[10px] text-muted-foreground">
+                              {r.assigned_pirate_name ?? "—"}
+                            </div>
+                          </div>
+                        ) : (
                           <span
                             className={
-                              "size-1.5 rounded-full " +
-                              (ready ? "bg-success" : "bg-muted-foreground")
+                              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-widest border " +
+                              (ready
+                                ? "border-success/40 text-success bg-success/10"
+                                : "border-border text-muted-foreground")
+                            }
+                          >
+                            <span
+                              className={
+                                "size-1.5 rounded-full " +
+                                (ready ? "bg-success" : "bg-muted-foreground")
+                              }
+                            />
+                            {ready ? "READY" : "EMPTY"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
+                        {enRoute ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={cancelMut.isPending}
+                            onClick={() => cancelMut.mutate(r.id)}
+                          >
+                            Otkaži
+                          </Button>
+                        ) : (
+                          <AssignDialog
+                            targetLabel={r.ikariam_username}
+                            disabled={!ready}
+                            loading={enRouteMut.isPending}
+                            onConfirm={(name) =>
+                              enRouteMut.mutate({ id: r.id, pirate_name: name })
                             }
                           />
-                          {ready ? "READY" : "EMPTY"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
+                        )}
                         <CollectButton
                           ready={ready}
                           isPirate={isPirate}
