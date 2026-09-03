@@ -17,7 +17,6 @@ import {
   StatusBadge,
   relationOf,
   useRelationMap,
-  type RelationType,
 } from "@/components/alliance-badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {

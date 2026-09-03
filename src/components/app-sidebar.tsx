@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   Anchor,
   Coins,
+  Compass,
   FileClock,
   LayoutDashboard,
   ListOrdered,
@@ -34,6 +35,7 @@ const NAV: NavItem[] = [
   { label: "Highscore unos", to: "/highscore/submit", icon: Upload },
   { label: "Highscore lista", to: "/highscore", icon: ListOrdered },
   { label: "Piratski klasteri", to: "/clusters", icon: Target },
+  { label: "Najbliži poeni", to: "/nearby", icon: Compass },
   { label: "Audit log", to: "/audit", icon: FileClock },
   { label: "Admin panel", to: "/admin", icon: Settings, roles: ["admin"] },
 ];
