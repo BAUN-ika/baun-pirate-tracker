@@ -65,6 +65,12 @@ export function AssignDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {warning && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {warning}
+          </div>
+        )}
+
         <RadioGroup value={who} onValueChange={(v) => setWho(v as "me" | "other")}>
           <div className="flex items-center gap-2">
             <RadioGroupItem value="me" id="who-me" />
