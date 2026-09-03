@@ -176,6 +176,10 @@ export const collectPoints = createServerFn({ method: "POST" })
         last_updated_at: now,
         points_source: "collected",
         points_authoritative_at: now,
+        assignment_status: "ready",
+        assigned_pirate_name: null,
+        assigned_by_user_id: null,
+        assignment_started_at: null,
       })
       .eq("id", data.account_id)
       .select()
