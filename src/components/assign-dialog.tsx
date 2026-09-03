@@ -25,6 +25,7 @@ export function AssignDialog({
   onConfirm,
   triggerLabel = "Kreni",
   size = "sm",
+  warning,
 }: {
   targetLabel: string;
   disabled?: boolean;
@@ -32,6 +33,8 @@ export function AssignDialog({
   onConfirm: (pirateName?: string) => void;
   triggerLabel?: string;
   size?: "sm" | "default";
+  /** Upozorenje (npr. zabranjen savez) — prikazuje se prije potvrde. */
+  warning?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [who, setWho] = useState<"me" | "other">("me");
