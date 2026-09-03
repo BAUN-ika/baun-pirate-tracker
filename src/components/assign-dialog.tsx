@@ -25,6 +25,7 @@ export function AssignDialog({
   onConfirm,
   triggerLabel = "Kreni",
   size = "sm",
+  warning,
 }: {
   targetLabel: string;
   disabled?: boolean;
@@ -32,6 +33,8 @@ export function AssignDialog({
   onConfirm: (pirateName?: string) => void;
   triggerLabel?: string;
   size?: "sm" | "default";
+  /** Upozorenje (npr. zabranjen savez) — prikazuje se prije potvrde. */
+  warning?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [who, setWho] = useState<"me" | "other">("me");
@@ -61,6 +64,12 @@ export function AssignDialog({
             ostali članovi vide da je neko već krenuo.
           </DialogDescription>
         </DialogHeader>
+
+        {warning && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {warning}
+          </div>
+        )}
 
         <RadioGroup value={who} onValueChange={(v) => setWho(v as "me" | "other")}>
           <div className="flex items-center gap-2">

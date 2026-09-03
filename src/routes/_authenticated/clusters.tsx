@@ -1,14 +1,42 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Users } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Coins, Users } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CoordsLink } from "@/components/coords-link";
+import { AssignDialog } from "@/components/assign-dialog";
+import {
+  AllianceBadge,
+  StatusBadge,
+  relationOf,
+  useRelationMap,
+} from "@/components/alliance-badge";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import {
+  clusterCancelEnRoute,
+  clusterCollect,
+  clusterSetEnRoute,
+} from "@/lib/targets.functions";
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
+
+/** Stabilan kratki ključ (<=64 char) za klaster. */
+function hashKey(s: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < s.length; i++) {
+    h1 ^= s.charCodeAt(i);
+    h1 = Math.imul(h1, 0x01000193) >>> 0;
+    h2 = (Math.imul(h2 ^ s.charCodeAt(i), 0x85ebca6b) + i) >>> 0;
+  }
+  return `c${h1.toString(16)}${h2.toString(16)}`;
+}
 
 export const Route = createFileRoute("/_authenticated/clusters")({
   component: ClustersPage,
@@ -27,6 +55,7 @@ interface Entry {
 
 interface Cluster {
   key: string;
+  shortKey: string;
   total: number;
   players: Entry[];
   minX: number;
@@ -146,6 +175,7 @@ function buildClusters(entries: Entry[], radius: number): Cluster[] {
     const ys = members.map((m) => m.y);
     map.set(key, {
       key,
+      shortKey: hashKey(key),
       total,
       players: members.slice().sort((a, b) => b.pirate_points - a.pirate_points),
       minX: Math.min(...xs),
@@ -249,7 +279,12 @@ function ClusterList({
       ) : (
         <div className="space-y-4">
           {clusters.map((c) => (
-            <ClusterCard key={c.key} cluster={c} radius={radius} />
+            <ClusterCard
+              key={c.key}
+              cluster={c}
+              radius={radius}
+              period={period}
+            />
           ))}
         </div>
       )}
@@ -257,7 +292,83 @@ function ClusterList({
   );
 }
 
-function ClusterCard({ cluster, radius }: { cluster: Cluster; radius: number }) {
+function ClusterCard({
+  cluster,
+  radius,
+  period,
+}: {
+  cluster: Cluster;
+  radius: number;
+  period: Period;
+}) {
+  const qc = useQueryClient();
+  const relations = useRelationMap();
+  const { data: me } = useCurrentUser();
+  const isPirate =
+    !!me?.roles.includes("admin") || !!me?.roles.includes("glavni_pirat");
+
+  const enRouteFn = useServerFn(clusterSetEnRoute);
+  const cancelFn = useServerFn(clusterCancelEnRoute);
+  const collectFn = useServerFn(clusterCollect);
+
+  const base = {
+    period_start: period.start.toISOString(),
+    radius,
+    cluster_key: cluster.shortKey,
+  };
+
+  const statusQ = useQuery({
+    queryKey: ["cluster-status", base.period_start, radius, cluster.shortKey],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pirate_cluster_status")
+        .select("status, assigned_pirate_name")
+        .eq("period_start", base.period_start)
+        .eq("radius", radius)
+        .eq("cluster_key", cluster.shortKey)
+        .maybeSingle();
+      return data ?? null;
+    },
+  });
+
+  const refresh = () =>
+    qc.invalidateQueries({ queryKey: ["cluster-status", base.period_start, radius, cluster.shortKey] });
+
+  const enRouteMut = useMutation({
+    mutationFn: (pirate_name?: string) => enRouteFn({ data: { ...base, pirate_name } }),
+    onSuccess: (r: any) => {
+      toast.success(`Krenuo: ${r?.assigned_pirate_name ?? "—"}`);
+      refresh();
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+  const cancelMut = useMutation({
+    mutationFn: () => cancelFn({ data: base }),
+    onSuccess: () => {
+      toast.success("Assignment otkazan.");
+      refresh();
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+  const collectMut = useMutation({
+    mutationFn: () => collectFn({ data: base }),
+    onSuccess: () => {
+      toast.success("Klaster označen kao pokupljen.");
+      refresh();
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+
+  const status = statusQ.data?.status ?? "ready";
+  const protectedTags = cluster.players
+    .map((p) => ({ tag: p.alliance_tag, rel: relationOf(relations, p.alliance_tag) }))
+    .filter((x) => x.rel === "protected")
+    .map((x) => x.tag as string);
+  const uniqueProtected = Array.from(new Set(protectedTags));
+  const warning = uniqueProtected.length
+    ? `U ovom klasteru se nalaze igrači iz ZABRANJENIH saveza (${uniqueProtected.join(", ")}). Da li si siguran da želiš krenuti?`
+    : undefined;
+
   return (
     <div className="pirate-card rounded-2xl overflow-hidden">
       <div className="p-4 border-b border-border bg-card/40 flex flex-wrap gap-4 items-center">
@@ -284,6 +395,43 @@ function ClusterCard({ cluster, radius }: { cluster: Cluster; radius: number }) 
             {cluster.minX}:{cluster.minY} – {cluster.maxX}:{cluster.maxY}
           </span>
         </div>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="text-right">
+            <StatusBadge status={status} />
+            {status === "en_route" && (
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {statusQ.data?.assigned_pirate_name ?? "—"}
+              </div>
+            )}
+          </div>
+          {status === "en_route" ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={cancelMut.isPending}
+              onClick={() => cancelMut.mutate()}
+            >
+              Otkaži
+            </Button>
+          ) : (
+            <AssignDialog
+              targetLabel={`Klaster ${cluster.minX}:${cluster.minY} – ${cluster.maxX}:${cluster.maxY} (${cluster.players.length} igrača)`}
+              loading={enRouteMut.isPending}
+              warning={warning}
+              onConfirm={(name) => enRouteMut.mutate(name)}
+            />
+          )}
+          {isPirate && (
+            <Button
+              size="sm"
+              disabled={collectMut.isPending || status === "collected"}
+              onClick={() => collectMut.mutate()}
+            >
+              <Coins className="size-3.5 mr-1.5" />
+              Pokupi
+            </Button>
+          )}
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -309,8 +457,11 @@ function ClusterCard({ cluster, radius }: { cluster: Cluster; radius: number }) 
                 <td className="py-2 px-2 font-medium truncate max-w-[16rem]">
                   {p.ikariam_username}
                 </td>
-                <td className="py-2 px-2 text-muted-foreground">
-                  {p.alliance_tag ?? "—"}
+                <td className="py-2 px-2">
+                  <AllianceBadge
+                    tag={p.alliance_tag}
+                    relation={relationOf(relations, p.alliance_tag)}
+                  />
                 </td>
                 <td className="py-2 px-2 text-right tabular-nums">
                   {p.pirate_points.toLocaleString("bs-BA")}

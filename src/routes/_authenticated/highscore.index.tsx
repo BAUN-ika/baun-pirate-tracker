@@ -350,7 +350,10 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
                   const rel = relationOf(relations, r.alliance_tag);
                   const st = statuses?.get(r.ikariam_username.trim().toLowerCase());
                   const status = st?.status ?? "ready";
-                  const blocked = rel !== null;
+                  const relWarning =
+                    rel === "protected"
+                      ? `Savez ${r.alliance_tag} je označen kao ZABRANJEN. Da li si siguran da želiš krenuti na ovog igrača?`
+                      : undefined;
                   return (
                     <tr
                       key={`${r.rank}-${r.ikariam_username}`}
@@ -395,7 +398,7 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
                         ) : (
                           <AssignDialog
                             targetLabel={`${r.ikariam_username} (${r.coordinates ?? "—"})`}
-                            disabled={blocked}
+                            warning={relWarning}
                             loading={enRouteMut.isPending}
                             onConfirm={(name) =>
                               enRouteMut.mutate({ row: r, pirate_name: name })
