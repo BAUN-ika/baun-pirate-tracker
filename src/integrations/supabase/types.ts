@@ -103,6 +103,7 @@ export type Database = {
           period_end: string
           period_start: string
           pirate_points: number
+          pirate_round_id: string | null
           rank: number
           source: string
           submission_id: string
@@ -118,6 +119,7 @@ export type Database = {
           period_end: string
           period_start: string
           pirate_points: number
+          pirate_round_id?: string | null
           rank: number
           source?: string
           submission_id: string
@@ -133,6 +135,7 @@ export type Database = {
           period_end?: string
           period_start?: string
           pirate_points?: number
+          pirate_round_id?: string | null
           rank?: number
           source?: string
           submission_id?: string
@@ -155,6 +158,7 @@ export type Database = {
           id: string
           period_end: string
           period_start: string
+          pirate_round_id: string | null
           raw_text: string
           source: string
           submitted_by_user_id: string
@@ -165,6 +169,7 @@ export type Database = {
           id?: string
           period_end: string
           period_start: string
+          pirate_round_id?: string | null
           raw_text: string
           source?: string
           submitted_by_user_id: string
@@ -175,6 +180,7 @@ export type Database = {
           id?: string
           period_end?: string
           period_start?: string
+          pirate_round_id?: string | null
           raw_text?: string
           source?: string
           submitted_by_user_id?: string
@@ -191,6 +197,7 @@ export type Database = {
           id: string
           ikariam_username: string
           period_start: string
+          pirate_round_id: string | null
           rank: number | null
           started_at: string | null
           status: string
@@ -205,6 +212,7 @@ export type Database = {
           id?: string
           ikariam_username: string
           period_start: string
+          pirate_round_id?: string | null
           rank?: number | null
           started_at?: string | null
           status?: string
@@ -219,6 +227,7 @@ export type Database = {
           id?: string
           ikariam_username?: string
           period_start?: string
+          pirate_round_id?: string | null
           rank?: number | null
           started_at?: string | null
           status?: string
@@ -290,6 +299,7 @@ export type Database = {
           created_at: string
           id: string
           period_start: string
+          pirate_round_id: string | null
           radius: number
           started_at: string | null
           status: string
@@ -304,6 +314,7 @@ export type Database = {
           created_at?: string
           id?: string
           period_start: string
+          pirate_round_id?: string | null
           radius: number
           started_at?: string | null
           status?: string
@@ -318,10 +329,50 @@ export type Database = {
           created_at?: string
           id?: string
           period_start?: string
+          pirate_round_id?: string | null
           radius?: number
           started_at?: string | null
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      pirate_collection_events: {
+        Row: {
+          collected_at: string
+          collected_by_name: string
+          collected_by_user_id: string | null
+          id: string
+          pirate_points_collected: number
+          pirate_round_id: string | null
+          source: string | null
+          target_alliance: string | null
+          target_coordinates: string | null
+          target_username: string
+        }
+        Insert: {
+          collected_at?: string
+          collected_by_name: string
+          collected_by_user_id?: string | null
+          id?: string
+          pirate_points_collected?: number
+          pirate_round_id?: string | null
+          source?: string | null
+          target_alliance?: string | null
+          target_coordinates?: string | null
+          target_username: string
+        }
+        Update: {
+          collected_at?: string
+          collected_by_name?: string
+          collected_by_user_id?: string | null
+          id?: string
+          pirate_points_collected?: number
+          pirate_round_id?: string | null
+          source?: string | null
+          target_alliance?: string | null
+          target_coordinates?: string | null
+          target_username?: string
         }
         Relationships: []
       }
@@ -371,6 +422,123 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pirate_rounds: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          starts_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      pirate_target_status: {
+        Row: {
+          alliance_tag: string | null
+          assigned_by_user_id: string | null
+          assigned_pirate_name: string | null
+          collected_at: string | null
+          collected_by_user_id: string | null
+          collected_points: number | null
+          coordinates: string | null
+          created_at: string
+          id: string
+          ikariam_username: string
+          pirate_round_id: string | null
+          rank: number | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          username_key: string
+        }
+        Insert: {
+          alliance_tag?: string | null
+          assigned_by_user_id?: string | null
+          assigned_pirate_name?: string | null
+          collected_at?: string | null
+          collected_by_user_id?: string | null
+          collected_points?: number | null
+          coordinates?: string | null
+          created_at?: string
+          id?: string
+          ikariam_username: string
+          pirate_round_id?: string | null
+          rank?: number | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          username_key: string
+        }
+        Update: {
+          alliance_tag?: string | null
+          assigned_by_user_id?: string | null
+          assigned_pirate_name?: string | null
+          collected_at?: string | null
+          collected_by_user_id?: string | null
+          collected_points?: number | null
+          coordinates?: string | null
+          created_at?: string
+          id?: string
+          ikariam_username?: string
+          pirate_round_id?: string | null
+          rank?: number | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          username_key?: string
+        }
+        Relationships: []
+      }
+      player_relations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          ikariam_username: string
+          relation_type: string
+          updated_at: string
+          username_key: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ikariam_username: string
+          relation_type: string
+          updated_at?: string
+          username_key: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ikariam_username?: string
+          relation_type?: string
+          updated_at?: string
+          username_key?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -422,7 +590,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      active_pirate_round_id: { Args: never; Returns: string }
       complete_due_pirate_missions: { Args: never; Returns: number }
+      complete_due_pirate_rounds: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
