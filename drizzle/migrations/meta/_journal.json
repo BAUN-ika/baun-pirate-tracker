@@ -15,6 +15,20 @@
       "when": 1788249702146,
       "tag": "0001_alliance_relations_and_target_status",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788509188776,
+      "tag": "0002_pirate_rounds_global_targets",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788509233198,
+      "tag": "0003_target_status_unique_index",
+      "breakpoints": true
     }
   ]
 }
