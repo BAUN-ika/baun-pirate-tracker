@@ -128,72 +128,16 @@ function HighscoreListPage() {
 }
 
 function HighscoreTable({ period, label }: { period: Period; label: string }) {
-  const qc = useQueryClient();
-  const { isPirate } = useCurrentUser();
   const { data, isLoading } = useHighscore(period);
-  const { data: statuses } = useTargetStatuses(period);
-  const relations = useRelationMap();
+  const { map: statuses } = useTargetStatusMap();
+  const actions = useTargetActions("highscore");
+  const effRelation = useEffectiveRelation();
 
   const [search, setSearch] = useState("");
   const [minR, setMinR] = useState("");
   const [maxR, setMaxR] = useState("");
   const [allianceFilter, setAllianceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-
-  const periodStart = period.start.toISOString();
-  const enRouteFn = useServerFn(highscoreSetEnRoute);
-  const cancelFn = useServerFn(highscoreCancelEnRoute);
-  const collectFn = useServerFn(highscoreCollect);
-
-  const refresh = () =>
-    qc.invalidateQueries({ queryKey: ["hs-target-status", periodStart] });
-
-  const enRouteMut = useMutation({
-    mutationFn: (v: { row: Row; pirate_name?: string }) =>
-      enRouteFn({
-        data: {
-          period_start: periodStart,
-          ikariam_username: v.row.ikariam_username,
-          rank: v.row.rank,
-          coordinates: v.row.coordinates ?? undefined,
-          alliance_tag: v.row.alliance_tag ?? undefined,
-          pirate_name: v.pirate_name,
-        },
-      }),
-    onSuccess: (r: any) => {
-      toast.success(`Krenuo: ${r?.assigned_pirate_name ?? "—"}`);
-      refresh();
-    },
-    onError: (e: any) => toast.error("Greška", { description: e?.message }),
-  });
-
-  const cancelMut = useMutation({
-    mutationFn: (username: string) =>
-      cancelFn({ data: { period_start: periodStart, ikariam_username: username } }),
-    onSuccess: () => {
-      toast.success("Assignment otkazan.");
-      refresh();
-    },
-    onError: (e: any) => toast.error("Greška", { description: e?.message }),
-  });
-
-  const collectMut = useMutation({
-    mutationFn: (row: Row) =>
-      collectFn({
-        data: {
-          period_start: periodStart,
-          ikariam_username: row.ikariam_username,
-          rank: row.rank,
-          coordinates: row.coordinates ?? undefined,
-          alliance_tag: row.alliance_tag ?? undefined,
-        },
-      }),
-    onSuccess: () => {
-      toast.success("Meta označena kao pokupljena.");
-      refresh();
-    },
-    onError: (e: any) => toast.error("Greška", { description: e?.message }),
-  });
 
   const rows = useMemo(() => {
     let xs = data ?? [];
@@ -213,21 +157,19 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
 
     if (allianceFilter !== "all") {
       xs = xs.filter((r) => {
-        const rel = relationOf(relations, r.alliance_tag);
-        if (allianceFilter === "none") return rel === null;
-        if (allianceFilter === "attackable") return rel === null;
+        const rel = effRelation(r.ikariam_username, r.alliance_tag).relation;
+        if (allianceFilter === "none" || allianceFilter === "attackable")
+          return rel === null;
         return rel === allianceFilter;
       });
     }
     if (statusFilter !== "all") {
-      xs = xs.filter((r) => {
-        const st =
-          statuses?.get(r.ikariam_username.trim().toLowerCase())?.status ?? "ready";
-        return st === statusFilter;
-      });
+      xs = xs.filter(
+        (r) => (statusOf(statuses, r.ikariam_username)?.status ?? "ready") === statusFilter,
+      );
     }
     return xs;
-  }, [data, search, minR, maxR, allianceFilter, statusFilter, relations, statuses]);
+  }, [data, search, minR, maxR, allianceFilter, statusFilter, effRelation, statuses]);
 
   return (
     <div>
@@ -265,7 +207,7 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Svi savezi</SelectItem>
+            <SelectItem value="all">Svi odnosi</SelectItem>
             <SelectItem value="attackable">Samo napadive mete</SelectItem>
             <SelectItem value="our_alliance">Naš savez</SelectItem>
             <SelectItem value="deal">Dogovor</SelectItem>
@@ -300,7 +242,7 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
                   <th className="text-right py-2.5 pl-4 pr-2 w-16">Rank</th>
                   <th className="text-left py-2.5 px-2">Username</th>
                   <th className="text-right py-2.5 px-2">Poeni</th>
-                  <th className="text-left py-2.5 px-2">Savez</th>
+                  <th className="text-left py-2.5 px-2">Savez / odnos</th>
                   <th className="text-left py-2.5 px-2">Koordinate</th>
                   <th className="text-left py-2.5 px-2">Grad</th>
                   <th className="text-left py-2.5 px-2">Status</th>
@@ -310,13 +252,7 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
               </thead>
               <tbody>
                 {rows.map((r) => {
-                  const rel = relationOf(relations, r.alliance_tag);
-                  const st = statuses?.get(r.ikariam_username.trim().toLowerCase());
-                  const status = st?.status ?? "ready";
-                  const relWarning =
-                    rel === "protected"
-                      ? `Savez ${r.alliance_tag} je označen kao ZABRANJEN. Da li si siguran da želiš krenuti na ovog igrača?`
-                      : undefined;
+                  const eff = effRelation(r.ikariam_username, r.alliance_tag);
                   return (
                     <tr
                       key={`${r.rank}-${r.ikariam_username}`}
@@ -332,7 +268,11 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
                         {r.pirate_points.toLocaleString("bs-BA")}
                       </td>
                       <td className="py-2 px-2">
-                        <AllianceBadge tag={r.alliance_tag} relation={rel} />
+                        <AllianceBadge
+                          tag={r.alliance_tag}
+                          relation={eff.relation}
+                          fromPlayer={eff.fromPlayer}
+                        />
                       </td>
                       <td className="py-2 px-2">
                         <CoordsLink coords={r.coordinates ?? ""} />
@@ -341,43 +281,21 @@ function HighscoreTable({ period, label }: { period: Period; label: string }) {
                         {r.city_name ?? "—"}
                       </td>
                       <td className="py-2 px-2">
-                        <StatusBadge status={status} />
-                        {status === "en_route" && (
-                          <div className="text-[10px] text-muted-foreground mt-0.5">
-                            {st?.assigned_pirate_name ?? "—"}
-                          </div>
-                        )}
+                        <TargetStatusCell username={r.ikariam_username} map={statuses} />
                       </td>
-                      <td className="py-2 px-2 text-right whitespace-nowrap space-x-1">
-                        {status === "en_route" ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={cancelMut.isPending}
-                            onClick={() => cancelMut.mutate(r.ikariam_username)}
-                          >
-                            Otkaži
-                          </Button>
-                        ) : (
-                          <AssignDialog
-                            targetLabel={`${r.ikariam_username} (${r.coordinates ?? "—"})`}
-                            warning={relWarning}
-                            loading={enRouteMut.isPending}
-                            onConfirm={(name) =>
-                              enRouteMut.mutate({ row: r, pirate_name: name })
-                            }
-                          />
-                        )}
-                        {isPirate && (
-                          <Button
-                            size="sm"
-                            disabled={collectMut.isPending || status === "collected"}
-                            onClick={() => collectMut.mutate(r)}
-                          >
-                            <Coins className="size-3.5 mr-1.5" />
-                            Pokupi
-                          </Button>
-                        )}
+                      <td className="py-2 px-2 text-right">
+                        <TargetActions
+                          map={statuses}
+                          actions={actions}
+                          relation={eff.relation}
+                          target={{
+                            ikariam_username: r.ikariam_username,
+                            coordinates: r.coordinates,
+                            alliance_tag: r.alliance_tag,
+                            rank: r.rank,
+                            pirate_points: r.pirate_points,
+                          }}
+                        />
                       </td>
                       <td className="py-2 pr-4 pl-2 text-right text-[10px] text-muted-foreground">
                         <div className="text-gold/80">{r.submitted_by}</div>
