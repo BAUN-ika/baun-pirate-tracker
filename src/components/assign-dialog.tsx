@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Navigation } from "lucide-react";
+import type React from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,10 @@ export function AssignDialog({
   triggerLabel = "Kreni",
   size = "sm",
   warning,
+  title = "Ko ide po poene?",
+  description,
+  variant = "outline",
+  defaultOtherName,
 }: {
   targetLabel: string;
   disabled?: boolean;
@@ -35,33 +40,42 @@ export function AssignDialog({
   size?: "sm" | "default";
   /** Upozorenje (npr. zabranjen savez) — prikazuje se prije potvrde. */
   warning?: string;
+  title?: string;
+  description?: React.ReactNode;
+  variant?: "outline" | "default" | "ghost";
+  /** Predloženo ime kada se bira "drugi igrač". */
+  defaultOtherName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [who, setWho] = useState<"me" | "other">("me");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultOtherName ?? "");
 
   const confirm = () => {
     if (who === "other" && !name.trim()) return;
     onConfirm(who === "other" ? name.trim() : undefined);
     setOpen(false);
     setWho("me");
-    setName("");
+    setName(defaultOtherName ?? "");
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size={size} variant="outline" disabled={disabled || loading}>
+        <Button size={size} variant={variant} disabled={disabled || loading}>
           <Navigation className="size-3.5 mr-1.5" />
           {triggerLabel}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Ko ide po poene?</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Meta: <b>{targetLabel}</b>. Nakon potvrde meta dobija status EN ROUTE i
-            ostali članovi vide da je neko već krenuo.
+            {description ?? (
+              <>
+                Meta: <b>{targetLabel}</b>. Nakon potvrde meta dobija status EN ROUTE i
+                ostali članovi vide da je neko već krenuo.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
