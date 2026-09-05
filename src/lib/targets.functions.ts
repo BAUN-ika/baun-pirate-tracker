@@ -538,3 +538,324 @@ export const clusterCollect = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+/* ------------------------------ Player relations ------------------------------ */
+
+const PlayerRelationSchema = z.object({
+  ikariam_username: z.string().trim().min(1).max(80),
+  relation_type: z.enum(["our_alliance", "deal", "protected"]),
+});
+
+export const upsertPlayerRelation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => PlayerRelationSchema.parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await requirePirate(supabase, userId);
+    const uname = data.ikariam_username.trim();
+    const key = uname.toLowerCase();
+
+    const { data: found } = await supabase
+      .from("player_relations")
+      .select("id")
+      .eq("username_key", key)
+      .maybeSingle();
+
+    let row: any;
+    let action = "player_relation_created";
+    if (found) {
+      action = "player_relation_updated";
+      const { data: upd, error } = await supabase
+        .from("player_relations")
+        .update({
+          ikariam_username: uname,
+          relation_type: data.relation_type,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", found.id)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      row = upd;
+    } else {
+      const { data: ins, error } = await supabase
+        .from("player_relations")
+        .insert({
+          ikariam_username: uname,
+          username_key: key,
+          relation_type: data.relation_type,
+          created_by: userId,
+        })
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      row = ins;
+    }
+
+    await safeAuditLog(supabase, {
+      user_id: userId,
+      action,
+      entity_type: "player_relation",
+      entity_id: row.id,
+      metadata: { ikariam_username: uname, relation_type: data.relation_type },
+    });
+    return row;
+  });
+
+export const deletePlayerRelation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await requirePirate(supabase, userId);
+    const { data: prev } = await supabase
+      .from("player_relations")
+      .select("ikariam_username, relation_type")
+      .eq("id", data.id)
+      .maybeSingle();
+    const { error } = await supabase.from("player_relations").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    await safeAuditLog(supabase, {
+      user_id: userId,
+      action: "player_relation_deleted",
+      entity_type: "player_relation",
+      entity_id: data.id,
+      metadata: prev ?? null,
+    });
+    return { ok: true };
+  });
+
+/* ------------------------------ GLOBAL target status ------------------------------ */
+/* Jedan centralni model statusa mete, vezan za aktivni pirate round i username.       */
+
+async function activeRoundId(supabase: any): Promise<string | null> {
+  const { data } = await supabase
+    .from("pirate_rounds")
+    .select("id")
+    .eq("status", "active")
+    .order("starts_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+async function findTarget(supabase: any, roundId: string | null, key: string) {
+  let q = supabase.from("pirate_target_status").select("*").eq("username_key", key);
+  q = roundId ? q.eq("pirate_round_id", roundId) : q.is("pirate_round_id", null);
+  const { data } = await q.maybeSingle();
+  return data;
+}
+
+const TargetInput = z.object({
+  ikariam_username: z.string().trim().min(1).max(80),
+  coordinates: z.string().trim().max(20).nullish(),
+  alliance_tag: z.string().trim().max(40).nullish(),
+  rank: z.number().int().nullish(),
+  pirate_points: z.number().int().nullish(),
+});
+
+export const targetSetEnRoute = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => TargetInput.merge(AssignInput).parse(i))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const uname = data.ikariam_username.trim();
+    const key = uname.toLowerCase();
+    const roundId = await activeRoundId(supabase);
+    const existing = await findTarget(supabase, roundId, key);
+    if (existing?.status === "en_route")
+      throw new Error(`Već je krenuo: ${existing.assigned_pirate_name ?? "nepoznato"}.`);
+
+    const name = data.pirate_name?.trim() || (await displayName(supabase, userId));
+    const now = new Date().toISOString();
+    const patch = {
+      ikariam_username: uname,
+      coordinates: data.coordinates ?? existing?.coordinates ?? null,
+      alliance_tag: data.alliance_tag ?? existing?.alliance_tag ?? null,
+      rank: data.rank ?? existing?.rank ?? null,
+      status: "en_route",
+      assigned_pirate_name: name,
+      assigned_by_user_id: userId,
+      started_at: now,
+      collected_at: null,
+      collected_by_user_id: null,
+      updated_at: now,
+    };
+    if (existing) {
+      const { error } = await supabase
+        .from("pirate_target_status")
+        .update(patch)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("pirate_target_status")
+        .insert({ pirate_round_id: roundId, username_key: key, ...patch });
+      if (error) throw new Error(error.message);
+    }
+
+    // Sinhronizuj savezni nalog sa istim username-om (ako postoji).
+    await supabase
+      .from("ikariam_accounts")
+      .update({
+        assignment_status: "en_route",
+        assigned_pirate_name: name,
+        assigned_by_user_id: userId,
+        assignment_started_at: now,
+      })
+      .ilike("ikariam_username", uname);
+
+    await safeAuditLog(supabase, {
+      user_id: userId,
+      action: "target_en_route",
+      entity_type: "pirate_target",
+      entity_id: uname,
+      metadata: {
+        coordinates: patch.coordinates,
+        alliance_tag: patch.alliance_tag,
+        assigned_pirate_name: name,
+        pirate_round_id: roundId,
+      },
+    });
+    return { ok: true, assigned_pirate_name: name };
+  });
+
+export const targetCancelEnRoute = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ ikariam_username: z.string().trim().min(1) }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const uname = data.ikariam_username.trim();
+    const key = uname.toLowerCase();
+    const roundId = await activeRoundId(supabase);
+    const existing = await findTarget(supabase, roundId, key);
+    if (!existing) return { ok: true };
+    if (existing.assigned_by_user_id !== userId && !(await isPirate(supabase, userId)))
+      throw new Error("Samo onaj ko je krenuo, glavni pirat ili admin može otkazati.");
+
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("pirate_target_status")
+      .update({
+        status: "ready",
+        assigned_pirate_name: null,
+        assigned_by_user_id: null,
+        started_at: null,
+        updated_at: now,
+      })
+      .eq("id", existing.id);
+    if (error) throw new Error(error.message);
+
+    await supabase
+      .from("ikariam_accounts")
+      .update({
+        assignment_status: "ready",
+        assigned_pirate_name: null,
+        assigned_by_user_id: null,
+        assignment_started_at: null,
+      })
+      .ilike("ikariam_username", uname);
+
+    await safeAuditLog(supabase, {
+      user_id: userId,
+      action: "target_en_route_cancelled",
+      entity_type: "pirate_target",
+      entity_id: uname,
+      metadata: {
+        assigned_pirate_name: existing.assigned_pirate_name,
+        pirate_round_id: roundId,
+      },
+    });
+    return { ok: true };
+  });
+
+export const targetCollect = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    TargetInput.extend({
+      collected_by_name: z.string().trim().max(60).optional(),
+      source: z.string().trim().max(40).optional(),
+    }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    await requirePirate(supabase, userId);
+    const uname = data.ikariam_username.trim();
+    const key = uname.toLowerCase();
+    const roundId = await activeRoundId(supabase);
+    const existing = await findTarget(supabase, roundId, key);
+    const now = new Date().toISOString();
+
+    // Ko je pokupio: eksplicitni izbor → ko je bio EN_ROUTE → trenutni korisnik.
+    const explicit = data.collected_by_name?.trim();
+    const collectorName =
+      explicit || existing?.assigned_pirate_name || (await displayName(supabase, userId));
+
+    const points = data.pirate_points ?? 0;
+    const patch = {
+      ikariam_username: uname,
+      coordinates: data.coordinates ?? existing?.coordinates ?? null,
+      alliance_tag: data.alliance_tag ?? existing?.alliance_tag ?? null,
+      rank: data.rank ?? existing?.rank ?? null,
+      status: "collected",
+      assigned_pirate_name: null,
+      assigned_by_user_id: null,
+      started_at: null,
+      collected_at: now,
+      collected_by_user_id: userId,
+      collected_points: points,
+      updated_at: now,
+    };
+    if (existing) {
+      const { error } = await supabase
+        .from("pirate_target_status")
+        .update(patch)
+        .eq("id", existing.id);
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase
+        .from("pirate_target_status")
+        .insert({ pirate_round_id: roundId, username_key: key, ...patch });
+      if (error) throw new Error(error.message);
+    }
+
+    const { error: evErr } = await supabase.from("pirate_collection_events").insert({
+      pirate_round_id: roundId,
+      collected_by_name: collectorName,
+      collected_by_user_id: explicit ? null : userId,
+      target_username: uname,
+      target_coordinates: patch.coordinates,
+      target_alliance: patch.alliance_tag,
+      pirate_points_collected: points,
+      source: data.source ?? null,
+      collected_at: now,
+    });
+    if (evErr) throw new Error(evErr.message);
+
+    await supabase
+      .from("ikariam_accounts")
+      .update({
+        assignment_status: "ready",
+        assigned_pirate_name: null,
+        assigned_by_user_id: null,
+        assignment_started_at: null,
+      })
+      .ilike("ikariam_username", uname);
+
+    await safeAuditLog(supabase, {
+      user_id: userId,
+      action: "target_collected",
+      entity_type: "pirate_target",
+      entity_id: uname,
+      metadata: {
+        coordinates: patch.coordinates,
+        alliance_tag: patch.alliance_tag,
+        pirate_points_collected: points,
+        collected_by_name: collectorName,
+        pirate_round_id: roundId,
+      },
+    });
+    return { ok: true, collected_by_name: collectorName };
+  });
