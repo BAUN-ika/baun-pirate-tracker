@@ -82,3 +82,38 @@ export function formatCountdown(ms: number): string {
   const s = totalSeconds % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
+
+/* ---------------- Pirate round helpers (Europe/Sarajevo) ---------------- */
+
+/** "2026-09-25" + "18:00" (Europe/Sarajevo) -> UTC Date */
+export function sarajevoLocalToUtc(dateStr: string, timeStr: string): Date {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  const [h, mi] = timeStr.split(":").map(Number);
+  return zonedTimeToUtc(y, mo, d, h, mi, 0, TZ);
+}
+
+/** Date -> { date: "2026-09-25", time: "18:00" } u Europe/Sarajevo vremenu */
+export function utcToSarajevoInputs(d: Date): { date: string; time: string } {
+  const p = getZonedParts(d, TZ);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    date: `${p.year}-${pad(p.month)}-${pad(p.day)}`,
+    time: `${pad(p.hour)}:${pad(p.minute)}`,
+  };
+}
+
+export function formatSarajevo(d: Date): string {
+  const { date, time } = utcToSarajevoInputs(d);
+  const [y, mo, dd] = date.split("-");
+  return `${dd}.${mo}.${y}. ${time}`;
+}
+
+/** "Još 12d 4h 32m" */
+export function formatRoundCountdown(ms: number): string {
+  if (ms <= 0) return "Reset je u toku...";
+  const total = Math.floor(ms / 1000);
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  return `Još ${d}d ${h}h ${m}m`;
+}
