@@ -1,12 +1,9 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { Coins, Search } from "lucide-react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -17,19 +14,9 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CoordsLink } from "@/components/coords-link";
-import { AssignDialog } from "@/components/assign-dialog";
-import {
-  AllianceBadge,
-  StatusBadge,
-  relationOf,
-  useRelationMap,
-} from "@/components/alliance-badge";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import {
-  highscoreCancelEnRoute,
-  highscoreCollect,
-  highscoreSetEnRoute,
-} from "@/lib/targets.functions";
+import { AllianceBadge, useEffectiveRelation } from "@/components/alliance-badge";
+import { TargetActions, TargetStatusCell } from "@/components/target-actions";
+import { statusOf, useTargetActions, useTargetStatusMap } from "@/hooks/use-target-status";
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
 
 export const Route = createFileRoute("/_authenticated/highscore/")({
@@ -45,12 +32,6 @@ interface Row {
   city_name: string | null;
   submitted_by: string;
   created_at: string;
-}
-
-interface TargetStatus {
-  ikariam_username: string;
-  status: string;
-  assigned_pirate_name: string | null;
 }
 
 function useHighscore(period: Period) {
@@ -115,24 +96,6 @@ function useHighscore(period: Period) {
           created_at: r.created_at,
         }))
         .sort((a, b) => a.rank - b.rank);
-    },
-  });
-}
-
-function useTargetStatuses(period: Period) {
-  return useQuery({
-    queryKey: ["hs-target-status", period.start.toISOString()],
-    queryFn: async (): Promise<Map<string, TargetStatus>> => {
-      const { data, error } = await supabase
-        .from("highscore_target_status")
-        .select("ikariam_username, status, assigned_pirate_name")
-        .eq("period_start", period.start.toISOString());
-      if (error) throw error;
-      const m = new Map<string, TargetStatus>();
-      for (const r of (data ?? []) as TargetStatus[]) {
-        m.set(r.ikariam_username.trim().toLowerCase(), r);
-      }
-      return m;
     },
   });
 }
