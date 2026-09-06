@@ -3,6 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  targetBulkCollect,
+  targetBulkSetEnRoute,
   targetCancelEnRoute,
   targetCollect,
   targetSetEnRoute,
@@ -99,6 +101,9 @@ export function useTargetActions(source?: string) {
     qc.invalidateQueries({ queryKey: ["all-accounts"] });
     qc.invalidateQueries({ queryKey: ["my-accounts"] });
     qc.invalidateQueries({ queryKey: ["collection-events"] });
+    qc.invalidateQueries({ queryKey: ["clusters-raw"] });
+    qc.invalidateQueries({ queryKey: ["nearby-candidates"] });
+    qc.invalidateQueries({ queryKey: ["highscore"] });
   };
 
   const enRoute = useMutation({
@@ -133,4 +138,58 @@ export function useTargetActions(source?: string) {
   });
 
   return { enRoute, cancel, collect };
+}
+
+/** Efektivni poeni mete: pokupljena meta ima 0 poena SVUDA. */
+export function effectivePoints(
+  map: Map<string, TargetStatusRow>,
+  username: string | null | undefined,
+  rawPoints: number | null | undefined,
+): number {
+  const st = statusOf(map, username);
+  if (st?.status === "collected") return 0;
+  return rawPoints ?? 0;
+}
+
+/** Masovne akcije za cijeli klaster. */
+export function useBulkTargetActions(source?: string) {
+  const qc = useQueryClient();
+  const bulkEnRouteFn = useServerFn(targetBulkSetEnRoute);
+  const bulkCollectFn = useServerFn(targetBulkCollect);
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["target-status"] });
+    qc.invalidateQueries({ queryKey: ["all-accounts"] });
+    qc.invalidateQueries({ queryKey: ["my-accounts"] });
+    qc.invalidateQueries({ queryKey: ["collection-events"] });
+    qc.invalidateQueries({ queryKey: ["clusters-raw"] });
+    qc.invalidateQueries({ queryKey: ["nearby-candidates"] });
+    qc.invalidateQueries({ queryKey: ["highscore"] });
+  };
+
+  const enRouteAll = useMutation({
+    mutationFn: (v: { targets: TargetRef[]; pirate_name?: string }) =>
+      bulkEnRouteFn({ data: { targets: v.targets as any, pirate_name: v.pirate_name } }),
+    onSuccess: (r: any) => {
+      toast.success(`Krenuo: ${r?.assigned_pirate_name ?? "—"} · ${r?.count ?? 0} meta`);
+      refresh();
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+
+  const collectAll = useMutation({
+    mutationFn: (v: { targets: TargetRef[]; collected_by_name?: string }) =>
+      bulkCollectFn({
+        data: { targets: v.targets as any, collected_by_name: v.collected_by_name, source },
+      }),
+    onSuccess: (r: any) => {
+      toast.success(
+        `Pokupljeno ${r?.count ?? 0} meta · ${(r?.total_points ?? 0).toLocaleString("bs-BA")} poena`,
+      );
+      refresh();
+    },
+    onError: (e: any) => toast.error("Greška", { description: e?.message }),
+  });
+
+  return { enRouteAll, collectAll };
 }
