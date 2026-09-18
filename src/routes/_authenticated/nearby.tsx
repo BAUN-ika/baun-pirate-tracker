@@ -259,21 +259,20 @@ function NearbyPage() {
                   <th className="text-right py-2.5 px-2">Poeni</th>
                   <th className="text-left py-2.5 px-2">Savez</th>
                   <th className="text-left py-2.5 px-2">Grad</th>
-                  <th className="text-right py-2.5 px-2">Rank</th>
-                  <th className="text-left py-2.5 pr-4 pl-2">Izvor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.key} className="border-t border-border hover:bg-card/60">
-                    <td className="py-2 pl-4 pr-2">
-                      <span className="font-display text-gold tabular-nums">
-                        {r.dist.toFixed(1)}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground ml-1.5">
-                        (±{r.cheb})
-                      </span>
-                    </td>
+                   <th className="text-right py-2.5 px-2">Rank</th>
+                   <th className="text-left py-2.5 px-2">Izvor</th>
+                   <th className="text-left py-2.5 px-2">Status</th>
+                   <th className="text-right py-2.5 pr-4 pl-2">Akcija</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {rows.map((r) => (
+                   <tr key={r.key} className="border-t border-border hover:bg-card/60">
+                     <td className="py-2 pl-4 pr-2">
+                       <span className="font-display text-gold tabular-nums">
+                         {r.dist}
+                       </span>
+                     </td>
                     <td className="py-2 px-2">
                       <CoordsLink coords={r.coordinates} />
                     </td>
