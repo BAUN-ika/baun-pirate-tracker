@@ -152,6 +152,25 @@ function Dashboard() {
           icon={TimerReset}
           accent
         />
+        <Stat
+          label="Piratski ciklus (21 dan)"
+          value={
+            round.data ? (
+              <span className="block">
+                <span className="text-base">
+                  {formatRoundCountdown(new Date(round.data.ends_at).getTime() - now)}
+                </span>
+                <span className="block text-[11px] text-muted-foreground font-sans">
+                  do {formatSarajevo(new Date(round.data.ends_at))}
+                </span>
+              </span>
+            ) : (
+              "—"
+            )
+          }
+          icon={TimerReset}
+          accent
+        />
       </div>
 
       <div className="mt-8 pirate-card rounded-2xl p-6">
