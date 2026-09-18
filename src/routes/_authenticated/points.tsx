@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Coins, Search, Timer } from "lucide-react";
+import { Search, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -16,28 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { collectPoints } from "@/lib/accounts.functions";
-import { accountSetEnRoute, accountCancelEnRoute } from "@/lib/targets.functions";
-import { AssignDialog } from "@/components/assign-dialog";
-import { StatusBadge } from "@/components/alliance-badge";
+import { TargetActions, TargetStatusCell } from "@/components/target-actions";
+import {
+  effectivePoints,
+  useTargetActions,
+  useTargetStatusMap,
+} from "@/hooks/use-target-status";
+import { useEffectiveRelation } from "@/components/alliance-badge";
 import { AllianceRelationsCard } from "@/components/admin-alliance-relations";
 import { completeDueMissions } from "@/lib/missions.functions";
 import { CoordsLink } from "@/components/coords-link";
@@ -51,10 +37,10 @@ type SortKey = "points" | "username" | "updated";
 function PointsPage() {
   const qc = useQueryClient();
   const { isPirate, isAdmin } = useCurrentUser();
-  const collectFn = useServerFn(collectPoints);
-  const enRouteFn = useServerFn(accountSetEnRoute);
-  const cancelEnRouteFn = useServerFn(accountCancelEnRoute);
   const completeDueFn = useServerFn(completeDueMissions);
+  const { map: statusMap } = useTargetStatusMap();
+  const targetActions = useTargetActions("points");
+  const effRelation = useEffectiveRelation();
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("points");
@@ -163,41 +149,6 @@ function PointsPage() {
     [rows],
   );
 
-  const collectMut = useMutation({
-    mutationFn: (id: string) => collectFn({ data: { account_id: id } }),
-    onSuccess: () => {
-      toast.success("Poeni su uspješno pokupljeni.");
-      qc.invalidateQueries({ queryKey: ["all-accounts"] });
-      qc.invalidateQueries({ queryKey: ["my-accounts"] });
-      qc.invalidateQueries({ queryKey: ["dashboard-stats"] });
-    },
-    onError: (e: any) => toast.error("Greška", { description: e?.message }),
-  });
-
-  const refreshAccounts = () => {
-    qc.invalidateQueries({ queryKey: ["all-accounts"] });
-    qc.invalidateQueries({ queryKey: ["my-accounts"] });
-  };
-
-  const enRouteMut = useMutation({
-    mutationFn: (v: { id: string; pirate_name?: string }) =>
-      enRouteFn({ data: { account_id: v.id, pirate_name: v.pirate_name } }),
-    onSuccess: (r: any) => {
-      toast.success(`Krenuo: ${r?.assigned_pirate_name ?? "—"}`);
-      refreshAccounts();
-    },
-    onError: (e: any) => toast.error("Greška", { description: e?.message }),
-  });
-
-  const cancelMut = useMutation({
-    mutationFn: (id: string) => cancelEnRouteFn({ data: { account_id: id } }),
-    onSuccess: () => {
-      toast.success("Assignment otkazan.");
-      refreshAccounts();
-    },
-    onError: (e: any) => toast.error("Greška", { description: e?.message }),
-  });
-
   return (
     <div>
       <PageHeader
@@ -288,8 +239,11 @@ function PointsPage() {
                 </tr>
               ) : (
                 rows.map((r) => {
-                  const ready = r.current_pirate_points > 0;
-                  const enRoute = (r.assignment_status ?? "ready") === "en_route";
+                  const points = effectivePoints(
+                    statusMap,
+                    r.ikariam_username,
+                    r.current_pirate_points,
+                  );
                   const accMissions = missionsByAccount.get(r.id) ?? [];
                   return (
                     <tr
@@ -301,7 +255,7 @@ function PointsPage() {
                         <CoordsLink coords={r.fortress_coordinates ?? ""} />
                       </td>
                       <td className="px-4 py-3 text-right font-display text-gold">
-                        {Number(r.current_pirate_points).toLocaleString("bs-BA")}
+                        {points.toLocaleString("bs-BA")}
                       </td>
                       <td className="px-4 py-3 min-w-[12rem]">
                         {accMissions.length === 0 ? (
@@ -321,59 +275,22 @@ function PointsPage() {
                         {new Date(r.last_updated_at).toLocaleString("bs-BA")}
                       </td>
                       <td className="px-4 py-3">
-                        {enRoute ? (
-                          <div className="space-y-1">
-                            <StatusBadge status="en_route" />
-                            <div className="text-[10px] text-muted-foreground">
-                              {r.assigned_pirate_name ?? "—"}
-                            </div>
-                          </div>
-                        ) : (
-                          <span
-                            className={
-                              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-widest border " +
-                              (ready
-                                ? "border-success/40 text-success bg-success/10"
-                                : "border-border text-muted-foreground")
-                            }
-                          >
-                            <span
-                              className={
-                                "size-1.5 rounded-full " +
-                                (ready ? "bg-success" : "bg-muted-foreground")
-                              }
-                            />
-                            {ready ? "READY" : "EMPTY"}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
-                        {enRoute ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={cancelMut.isPending}
-                            onClick={() => cancelMut.mutate(r.id)}
-                          >
-                            Otkaži
-                          </Button>
-                        ) : (
-                          <AssignDialog
-                            targetLabel={r.ikariam_username}
-                            disabled={!ready}
-                            loading={enRouteMut.isPending}
-                            onConfirm={(name) =>
-                              enRouteMut.mutate({ id: r.id, pirate_name: name })
-                            }
-                          />
-                        )}
-                        <CollectButton
-                          ready={ready}
-                          isPirate={isPirate}
-                          loading={collectMut.isPending}
+                        <TargetStatusCell
                           username={r.ikariam_username}
-                          pts={r.current_pirate_points}
-                          onConfirm={() => collectMut.mutate(r.id)}
+                          map={statusMap}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <TargetActions
+                          target={{
+                            ikariam_username: r.ikariam_username,
+                            coordinates: r.fortress_coordinates,
+                            alliance_tag: "BAUN",
+                            pirate_points: points,
+                          }}
+                          relation={effRelation(r.ikariam_username, "BAUN").relation}
+                          map={statusMap}
+                          actions={targetActions}
                         />
                       </td>
                     </tr>
@@ -437,63 +354,5 @@ function MissionRowBar({ mission }: { mission: any }) {
         ostalo {remH}h {remM}m
       </div>
     </div>
-  );
-}
-
-function CollectButton({
-  ready,
-  isPirate,
-  loading,
-  username,
-  pts,
-  onConfirm,
-}: {
-  ready: boolean;
-  isPirate: boolean;
-  loading: boolean;
-  username: string;
-  pts: number;
-  onConfirm: () => void;
-}) {
-  if (!isPirate) {
-    return (
-      <TooltipProvider delayDuration={150}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span>
-              <Button size="sm" variant="outline" disabled>
-                <Coins className="size-3.5 mr-1.5" /> Pokupi
-              </Button>
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            Samo glavni pirati mogu označiti poene kao pokupljene.
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button size="sm" disabled={!ready || loading}>
-          <Coins className="size-3.5 mr-1.5" />
-          Pokupi
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Pokupiti poene?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Resetuje poene naloga <b>{username}</b> sa{" "}
-            <b>{pts.toLocaleString("bs-BA")}</b> na <b>0</b>.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Otkaži</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Pokupi</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   );
 }
