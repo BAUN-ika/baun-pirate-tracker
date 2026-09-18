@@ -53,6 +53,7 @@ function Stat({
 
 function Dashboard() {
   const { data: me } = useCurrentUser();
+  const round = useActiveRound();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -126,7 +127,7 @@ function Dashboard() {
         description="Pregled stanja saveza i piratskih operacija."
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <Stat label="Naloga" value={stats.data?.total ?? "—"} icon={Anchor} />
         <Stat
           label="Ukupno poena"
