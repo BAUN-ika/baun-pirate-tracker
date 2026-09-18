@@ -14,7 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CoordsLink, validCoords } from "@/components/coords-link";
-import { AllianceBadge, relationOf, useRelationMap } from "@/components/alliance-badge";
+import { AllianceBadge, useEffectiveRelation } from "@/components/alliance-badge";
+import { TargetActions, TargetStatusCell } from "@/components/target-actions";
+import {
+  effectivePoints,
+  useTargetActions,
+  useTargetStatusMap,
+} from "@/hooks/use-target-status";
 import { getCurrentPeriod, getPreviousPeriod } from "@/lib/period";
 
 export const Route = createFileRoute("/_authenticated/nearby")({
