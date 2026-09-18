@@ -282,12 +282,18 @@ function NearbyPage() {
                     <td className="py-2 px-2 text-right tabular-nums">
                       {r.points.toLocaleString("bs-BA")}
                     </td>
-                    <td className="py-2 px-2">
-                      <AllianceBadge
-                        tag={r.alliance_tag}
-                        relation={relationOf(relations, r.alliance_tag)}
-                      />
-                    </td>
+                     <td className="py-2 px-2">
+                       {(() => {
+                         const er = effRelation(r.username, r.alliance_tag);
+                         return (
+                           <AllianceBadge
+                             tag={r.alliance_tag}
+                             relation={er.relation}
+                             fromPlayer={er.fromPlayer}
+                           />
+                         );
+                       })()}
+                     </td>
                     <td className="py-2 px-2 text-muted-foreground truncate max-w-[12rem]">
                       {r.city_name ?? "—"}
                     </td>
