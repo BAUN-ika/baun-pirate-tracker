@@ -14,7 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CoordsLink, validCoords } from "@/components/coords-link";
-import { AllianceBadge, relationOf, useRelationMap } from "@/components/alliance-badge";
+import { AllianceBadge, useEffectiveRelation } from "@/components/alliance-badge";
+import { TargetActions, TargetStatusCell } from "@/components/target-actions";
+import {
+  effectivePoints,
+  useTargetActions,
+  useTargetStatusMap,
+} from "@/hooks/use-target-status";
 import { getCurrentPeriod, getPreviousPeriod } from "@/lib/period";
 
 export const Route = createFileRoute("/_authenticated/nearby")({
@@ -147,7 +153,9 @@ function NearbyPage() {
   const [coords, setCoords] = useState("");
   const [source, setSource] = useState<"all" | Source>("all");
   const [onlyPositive, setOnlyPositive] = useState(true);
-  const relations = useRelationMap();
+  const effRelation = useEffectiveRelation();
+  const { map: statusMap } = useTargetStatusMap();
+  const actions = useTargetActions("nearby");
   const { data, isLoading } = useCandidates();
 
   const origin = validCoords(coords.trim()) ? parseCoords(coords.trim()) : null;
@@ -156,20 +164,20 @@ function NearbyPage() {
     if (!origin) return [];
     let xs = data ?? [];
     if (source !== "all") xs = xs.filter((c) => c.source === source);
-    if (onlyPositive) xs = xs.filter((c) => c.points > 0);
-    return xs
-      .map((c) => {
-        const dx = c.x - origin.x;
-        const dy = c.y - origin.y;
-        return {
-          ...c,
-          dist: Math.sqrt(dx * dx + dy * dy),
-          cheb: Math.max(Math.abs(dx), Math.abs(dy)),
-        };
-      })
+    const mapped = xs.map((c) => {
+      const dx = c.x - origin.x;
+      const dy = c.y - origin.y;
+      return {
+        ...c,
+        points: effectivePoints(statusMap, c.username, c.points),
+        dist: Math.round(Math.sqrt(dx * dx + dy * dy)),
+      };
+    });
+    const filtered = onlyPositive ? mapped.filter((c) => c.points > 0) : mapped;
+    return filtered
       .sort((a, b) => a.dist - b.dist || b.points - a.points)
       .slice(0, 300);
-  }, [data, origin?.x, origin?.y, source, onlyPositive]);
+  }, [data, origin?.x, origin?.y, source, onlyPositive, statusMap]);
 
   return (
     <div>
@@ -251,21 +259,20 @@ function NearbyPage() {
                   <th className="text-right py-2.5 px-2">Poeni</th>
                   <th className="text-left py-2.5 px-2">Savez</th>
                   <th className="text-left py-2.5 px-2">Grad</th>
-                  <th className="text-right py-2.5 px-2">Rank</th>
-                  <th className="text-left py-2.5 pr-4 pl-2">Izvor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.key} className="border-t border-border hover:bg-card/60">
-                    <td className="py-2 pl-4 pr-2">
-                      <span className="font-display text-gold tabular-nums">
-                        {r.dist.toFixed(1)}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground ml-1.5">
-                        (±{r.cheb})
-                      </span>
-                    </td>
+                   <th className="text-right py-2.5 px-2">Rank</th>
+                   <th className="text-left py-2.5 px-2">Izvor</th>
+                   <th className="text-left py-2.5 px-2">Status</th>
+                   <th className="text-right py-2.5 pr-4 pl-2">Akcija</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {rows.map((r) => (
+                   <tr key={r.key} className="border-t border-border hover:bg-card/60">
+                     <td className="py-2 pl-4 pr-2">
+                       <span className="font-display text-gold tabular-nums">
+                         {r.dist}
+                       </span>
+                     </td>
                     <td className="py-2 px-2">
                       <CoordsLink coords={r.coordinates} />
                     </td>
@@ -275,20 +282,43 @@ function NearbyPage() {
                     <td className="py-2 px-2 text-right tabular-nums">
                       {r.points.toLocaleString("bs-BA")}
                     </td>
-                    <td className="py-2 px-2">
-                      <AllianceBadge
-                        tag={r.alliance_tag}
-                        relation={relationOf(relations, r.alliance_tag)}
-                      />
-                    </td>
+                     <td className="py-2 px-2">
+                       {(() => {
+                         const er = effRelation(r.username, r.alliance_tag);
+                         return (
+                           <AllianceBadge
+                             tag={r.alliance_tag}
+                             relation={er.relation}
+                             fromPlayer={er.fromPlayer}
+                           />
+                         );
+                       })()}
+                     </td>
                     <td className="py-2 px-2 text-muted-foreground truncate max-w-[12rem]">
                       {r.city_name ?? "—"}
                     </td>
                     <td className="py-2 px-2 text-right text-muted-foreground tabular-nums">
                       {r.rank ? `#${r.rank}` : "—"}
                     </td>
-                    <td className="py-2 pr-4 pl-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <td className="py-2 px-2 text-[10px] uppercase tracking-widest text-muted-foreground">
                       {r.source === "alliance" ? "Savez" : "Highscore"}
+                    </td>
+                    <td className="py-2 px-2">
+                      <TargetStatusCell username={r.username} map={statusMap} />
+                    </td>
+                    <td className="py-2 pr-4 pl-2">
+                      <TargetActions
+                        target={{
+                          ikariam_username: r.username,
+                          coordinates: r.coordinates,
+                          alliance_tag: r.alliance_tag,
+                          rank: r.rank,
+                          pirate_points: r.points,
+                        }}
+                        relation={effRelation(r.username, r.alliance_tag).relation}
+                        map={statusMap}
+                        actions={actions}
+                      />
                     </td>
                   </tr>
                 ))}

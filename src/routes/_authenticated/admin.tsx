@@ -39,6 +39,8 @@ import {
 import { useCurrentUser, type AppRole } from "@/hooks/use-current-user";
 import { UserAccountsOverview } from "@/components/admin-user-accounts-overview";
 import { AllianceRelationsCard } from "@/components/admin-alliance-relations";
+import { PlayerRelationsCard } from "@/components/admin-player-relations";
+import { RoundSettingsCard } from "@/components/admin-round-settings";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async () => {
@@ -65,9 +67,11 @@ function AdminPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PasscodeCard />
         <TotalResetCard />
+        <RoundSettingsCard />
       </div>
       <UsersTable />
       <AllianceRelationsCard />
+      <PlayerRelationsCard />
       <UserAccountsOverview />
     </div>
   );

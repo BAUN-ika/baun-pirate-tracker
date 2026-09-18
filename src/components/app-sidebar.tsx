@@ -12,6 +12,7 @@ import {
   Ship,
   Skull,
   Target,
+  Trophy,
   Upload,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ const NAV: NavItem[] = [
   { label: "Highscore lista", to: "/highscore", icon: ListOrdered },
   { label: "Piratski klasteri", to: "/clusters", icon: Target },
   { label: "Najbliži poeni", to: "/nearby", icon: Compass },
+  { label: "Piratski učinak", to: "/performance", icon: Trophy },
   { label: "Audit log", to: "/audit", icon: FileClock },
   { label: "Admin panel", to: "/admin", icon: Settings, roles: ["admin"] },
 ];

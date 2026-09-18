@@ -80,6 +80,7 @@ export function TargetActions({
       )}
       {isPirate && (
         <AssignDialog
+          targetLabel={`${target.ikariam_username} (${target.coordinates ?? "—"})`}
           triggerLabel="Pokupi"
           variant="default"
           title="Ko je pokupio poene?"

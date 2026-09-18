@@ -12,8 +12,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useActiveRound } from "@/hooks/use-target-status";
 import {
   formatCountdown,
+  formatRoundCountdown,
+  formatSarajevo,
   getCurrentPeriod,
   msUntilNextReset,
 } from "@/lib/period";
@@ -50,6 +53,7 @@ function Stat({
 
 function Dashboard() {
   const { data: me } = useCurrentUser();
+  const round = useActiveRound();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -123,7 +127,7 @@ function Dashboard() {
         description="Pregled stanja saveza i piratskih operacija."
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <Stat label="Naloga" value={stats.data?.total ?? "—"} icon={Anchor} />
         <Stat
           label="Ukupno poena"
@@ -149,6 +153,25 @@ function Dashboard() {
         <Stat
           label="Highscore reset"
           value={formatCountdown(msUntilNextReset(new Date(now)))}
+          icon={TimerReset}
+          accent
+        />
+        <Stat
+          label="Piratski ciklus (21 dan)"
+          value={
+            round.data ? (
+              <span className="block">
+                <span className="text-base">
+                  {formatRoundCountdown(new Date(round.data.ends_at).getTime() - now)}
+                </span>
+                <span className="block text-[11px] text-muted-foreground font-sans">
+                  do {formatSarajevo(new Date(round.data.ends_at))}
+                </span>
+              </span>
+            ) : (
+              "—"
+            )
+          }
           icon={TimerReset}
           accent
         />
