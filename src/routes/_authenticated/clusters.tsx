@@ -27,6 +27,18 @@ import {
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
 
 
+/** Stabilan kratki ključ (<=64 char) za klaster. */
+function hashKey(s: string): string {
+  let h1 = 0x811c9dc5;
+  let h2 = 0x01000193;
+  for (let i = 0; i < s.length; i++) {
+    h1 ^= s.charCodeAt(i);
+    h1 = Math.imul(h1, 0x01000193) >>> 0;
+    h2 = (Math.imul(h2 ^ s.charCodeAt(i), 0x85ebca6b) + i) >>> 0;
+  }
+  return `c${h1.toString(16)}${h2.toString(16)}`;
+}
+
 export const Route = createFileRoute("/_authenticated/clusters")({
   component: ClustersPage,
 });
