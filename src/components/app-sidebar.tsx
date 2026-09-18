@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ListOrdered,
   LogOut,
+  Map,
   Radar,
   Settings,
   Ship,

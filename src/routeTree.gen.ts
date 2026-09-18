@@ -17,6 +17,7 @@ import { Route as AuthenticatedPointsRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedPirateScannerRouteImport } from './routes/_authenticated/pirate-scanner'
 import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
 import { Route as AuthenticatedNearbyRouteImport } from './routes/_authenticated/nearby'
+import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClustersRouteImport } from './routes/_authenticated/clusters'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/audit'
@@ -66,6 +67,11 @@ const AuthenticatedNearbyRoute = AuthenticatedNearbyRouteImport.update({
   path: '/nearby',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMapRoute = AuthenticatedMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuthenticatedAuditRoute
   '/clusters': typeof AuthenticatedClustersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/map': typeof AuthenticatedMapRoute
   '/nearby': typeof AuthenticatedNearbyRoute
   '/performance': typeof AuthenticatedPerformanceRoute
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/audit': typeof AuthenticatedAuditRoute
   '/clusters': typeof AuthenticatedClustersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/map': typeof AuthenticatedMapRoute
   '/nearby': typeof AuthenticatedNearbyRoute
   '/performance': typeof AuthenticatedPerformanceRoute
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
   '/_authenticated/clusters': typeof AuthenticatedClustersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/map': typeof AuthenticatedMapRoute
   '/_authenticated/nearby': typeof AuthenticatedNearbyRoute
   '/_authenticated/performance': typeof AuthenticatedPerformanceRoute
   '/_authenticated/pirate-scanner': typeof AuthenticatedPirateScannerRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/clusters'
     | '/dashboard'
+    | '/map'
     | '/nearby'
     | '/performance'
     | '/pirate-scanner'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/clusters'
     | '/dashboard'
+    | '/map'
     | '/nearby'
     | '/performance'
     | '/pirate-scanner'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/_authenticated/audit'
     | '/_authenticated/clusters'
     | '/_authenticated/dashboard'
+    | '/_authenticated/map'
     | '/_authenticated/nearby'
     | '/_authenticated/performance'
     | '/_authenticated/pirate-scanner'
@@ -271,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNearbyRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/map': {
+      id: '/_authenticated/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof AuthenticatedMapRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -329,6 +348,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAuditRoute: typeof AuthenticatedAuditRoute
   AuthenticatedClustersRoute: typeof AuthenticatedClustersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedMapRoute: typeof AuthenticatedMapRoute
   AuthenticatedNearbyRoute: typeof AuthenticatedNearbyRoute
   AuthenticatedPerformanceRoute: typeof AuthenticatedPerformanceRoute
   AuthenticatedPirateScannerRoute: typeof AuthenticatedPirateScannerRoute
@@ -343,6 +363,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAuditRoute: AuthenticatedAuditRoute,
   AuthenticatedClustersRoute: AuthenticatedClustersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedMapRoute: AuthenticatedMapRoute,
   AuthenticatedNearbyRoute: AuthenticatedNearbyRoute,
   AuthenticatedPerformanceRoute: AuthenticatedPerformanceRoute,
   AuthenticatedPirateScannerRoute: AuthenticatedPirateScannerRoute,
