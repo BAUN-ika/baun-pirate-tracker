@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { Coins, Users } from "lucide-react";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -15,28 +12,20 @@ import { AssignDialog } from "@/components/assign-dialog";
 import {
   AllianceBadge,
   StatusBadge,
-  relationOf,
-  useRelationMap,
+  useEffectiveRelation,
 } from "@/components/alliance-badge";
+import { TargetActions, TargetStatusCell } from "@/components/target-actions";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
-  clusterCancelEnRoute,
-  clusterCollect,
-  clusterSetEnRoute,
-} from "@/lib/targets.functions";
+  effectivePoints,
+  statusOf,
+  useBulkTargetActions,
+  useTargetActions,
+  useTargetStatusMap,
+  type TargetRef,
+} from "@/hooks/use-target-status";
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
 
-/** Stabilan kratki ključ (<=64 char) za klaster. */
-function hashKey(s: string): string {
-  let h1 = 0x811c9dc5;
-  let h2 = 0x01000193;
-  for (let i = 0; i < s.length; i++) {
-    h1 ^= s.charCodeAt(i);
-    h1 = Math.imul(h1, 0x01000193) >>> 0;
-    h2 = (Math.imul(h2 ^ s.charCodeAt(i), 0x85ebca6b) + i) >>> 0;
-  }
-  return `c${h1.toString(16)}${h2.toString(16)}`;
-}
 
 export const Route = createFileRoute("/_authenticated/clusters")({
   component: ClustersPage,
