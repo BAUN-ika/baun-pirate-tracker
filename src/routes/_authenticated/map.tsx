@@ -94,7 +94,7 @@ const relKeyOf = (t: CurrentPirateTarget): RelKey => t.effective_relation ?? "ot
 const CELL = 10;
 const WORLD = 100 * CELL;
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 12;
+const MAX_ZOOM = 5;
 
 const wx = (x: number) => (x - 0.5) * CELL;
 const wy = (y: number) => (y - 0.5) * CELL;
@@ -323,7 +323,7 @@ function MapView({ period, label }: { period: Period; label: string }) {
   /* screen-space veličine: world = screen / zoom */
   const s = (screenUnits: number) => screenUnits / zoom;
   const gridStep = zoom >= 4 ? 1 : zoom >= 2 ? 5 : 10;
-  const labelStep = zoom >= 6 ? 1 : zoom >= 3 ? 2 : zoom >= 1.6 ? 5 : 10;
+  const labelStep = zoom >= 4.5 ? 1 : zoom >= 3 ? 2 : zoom >= 1.6 ? 5 : 10;
 
   const gridLines: number[] = [];
   const startI = Math.max(1, Math.floor(cam.x / CELL) - 1);
@@ -547,12 +547,17 @@ function MapView({ period, label }: { period: Period; label: string }) {
                 })}
               </g>
 
-              {/* markeri — fiksna screen-space veličina */}
+              {/* markeri — umjereno rastu unutar sve većeg polja */}
               {cells.map((c) => {
                 const t = intensity(c.total);
                 const color = REL_COLOR[c.dominant];
                 const multi = c.players.length > 1;
-                const r = s(3.5 + t * 4 + (multi ? 1.5 : 0));
+                const zoomFill = ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)) * CELL * 0.24;
+                const r = Math.min(
+                  CELL * 0.38,
+                  s(3.5 + t * 4 + (multi ? 1.5 : 0)) + zoomFill,
+                );
+                const hitRadius = Math.min(CELL / 2, r + s(3));
                 const faded = c.collected === c.players.length;
                 const onEnter = (ev: React.MouseEvent) => {
                   const box = hostRef.current?.getBoundingClientRect();
@@ -573,10 +578,10 @@ function MapView({ period, label }: { period: Period; label: string }) {
                   >
                     {/* precizna klik zona vezana za polje */}
                     <rect
-                      x={wx(c.x) - Math.min(CELL / 2, s(7))}
-                      y={wy(c.y) - Math.min(CELL / 2, s(7))}
-                      width={Math.min(CELL, s(14))}
-                      height={Math.min(CELL, s(14))}
+                      x={wx(c.x) - hitRadius}
+                      y={wy(c.y) - hitRadius}
+                      width={hitRadius * 2}
+                      height={hitRadius * 2}
                       fill="transparent"
                     />
                     <circle
