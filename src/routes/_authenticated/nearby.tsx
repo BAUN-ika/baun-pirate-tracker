@@ -153,7 +153,9 @@ function NearbyPage() {
   const [coords, setCoords] = useState("");
   const [source, setSource] = useState<"all" | Source>("all");
   const [onlyPositive, setOnlyPositive] = useState(true);
-  const relations = useRelationMap();
+  const effRelation = useEffectiveRelation();
+  const { map: statusMap } = useTargetStatusMap();
+  const actions = useTargetActions("nearby");
   const { data, isLoading } = useCandidates();
 
   const origin = validCoords(coords.trim()) ? parseCoords(coords.trim()) : null;
@@ -162,20 +164,20 @@ function NearbyPage() {
     if (!origin) return [];
     let xs = data ?? [];
     if (source !== "all") xs = xs.filter((c) => c.source === source);
-    if (onlyPositive) xs = xs.filter((c) => c.points > 0);
-    return xs
-      .map((c) => {
-        const dx = c.x - origin.x;
-        const dy = c.y - origin.y;
-        return {
-          ...c,
-          dist: Math.sqrt(dx * dx + dy * dy),
-          cheb: Math.max(Math.abs(dx), Math.abs(dy)),
-        };
-      })
+    const mapped = xs.map((c) => {
+      const dx = c.x - origin.x;
+      const dy = c.y - origin.y;
+      return {
+        ...c,
+        points: effectivePoints(statusMap, c.username, c.points),
+        dist: Math.round(Math.sqrt(dx * dx + dy * dy)),
+      };
+    });
+    const filtered = onlyPositive ? mapped.filter((c) => c.points > 0) : mapped;
+    return filtered
       .sort((a, b) => a.dist - b.dist || b.points - a.points)
       .slice(0, 300);
-  }, [data, origin?.x, origin?.y, source, onlyPositive]);
+  }, [data, origin?.x, origin?.y, source, onlyPositive, statusMap]);
 
   return (
     <div>
