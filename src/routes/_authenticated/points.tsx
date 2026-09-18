@@ -126,13 +126,16 @@ function PointsPage() {
       const q = search.trim().toLowerCase();
       xs = xs.filter((r) => r.ikariam_username.toLowerCase().includes(q));
     }
-    if (onlyPositive) xs = xs.filter((r) => r.current_pirate_points > 0);
+    const pts = (r: any) =>
+      effectivePoints(statusMap, r.ikariam_username, r.current_pirate_points);
+    if (onlyPositive) xs = xs.filter((r) => pts(r) > 0);
     if (ownerFilter !== "all") xs = xs.filter((r) => r.owner_user_id === ownerFilter);
     if (statusFilter !== "all")
-      xs = xs.filter((r) => (r.assignment_status ?? "ready") === statusFilter);
+      xs = xs.filter(
+        (r) => (statusOf(statusMap, r.ikariam_username)?.status ?? "ready") === statusFilter,
+      );
     const sorted = [...xs];
-    if (sort === "points")
-      sorted.sort((a, b) => b.current_pirate_points - a.current_pirate_points);
+    if (sort === "points") sorted.sort((a, b) => pts(b) - pts(a));
     if (sort === "username")
       sorted.sort((a, b) => a.ikariam_username.localeCompare(b.ikariam_username));
     if (sort === "updated")
@@ -142,11 +145,16 @@ function PointsPage() {
           new Date(a.last_updated_at).getTime(),
       );
     return sorted;
-  }, [all.data, search, sort, onlyPositive, ownerFilter, statusFilter]);
+  }, [all.data, search, sort, onlyPositive, ownerFilter, statusFilter, statusMap]);
 
   const totalPoints = useMemo(
-    () => rows.reduce((sum, r) => sum + (r.current_pirate_points ?? 0), 0),
-    [rows],
+    () =>
+      rows.reduce(
+        (sum, r) =>
+          sum + effectivePoints(statusMap, r.ikariam_username, r.current_pirate_points),
+        0,
+      ),
+    [rows, statusMap],
   );
 
   return (
