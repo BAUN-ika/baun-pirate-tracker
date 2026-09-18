@@ -256,17 +256,25 @@ function ClusterList({
   label: string;
 }) {
   const { data, isLoading } = useClusterData(period);
-  const clusters = useMemo(
-    () => (data ? buildClusters(data, radius) : []),
-    [data, radius],
+  const { map: statusMap } = useTargetStatusMap();
+
+  // Pokupljene mete imaju 0 poena svuda — izlaze iz računa klastera.
+  const active = useMemo(
+    () =>
+      (data ?? []).filter(
+        (e) => effectivePoints(statusMap, e.ikariam_username, e.pirate_points) > 0,
+      ),
+    [data, statusMap],
   );
+
+  const clusters = useMemo(() => buildClusters(active, radius), [active, radius]);
 
   return (
     <div>
       <div className="text-xs text-muted-foreground mb-3">
         {label}: {period.start.toLocaleString("bs-BA")} →{" "}
         {period.end.toLocaleString("bs-BA")}
-        {data ? ` · ${data.length} igrača u analizi` : ""}
+        {data ? ` · ${active.length} igrača u analizi` : ""}
       </div>
 
       {isLoading ? (
@@ -280,12 +288,7 @@ function ClusterList({
       ) : (
         <div className="space-y-4">
           {clusters.map((c) => (
-            <ClusterCard
-              key={c.key}
-              cluster={c}
-              radius={radius}
-              period={period}
-            />
+            <ClusterCard key={c.key} cluster={c} radius={radius} statusMap={statusMap} />
           ))}
         </div>
       )}
@@ -296,79 +299,43 @@ function ClusterList({
 function ClusterCard({
   cluster,
   radius,
-  period,
+  statusMap,
 }: {
   cluster: Cluster;
   radius: number;
-  period: Period;
+  statusMap: ReturnType<typeof useTargetStatusMap>["map"];
 }) {
-  const qc = useQueryClient();
-  const relations = useRelationMap();
-  const { data: me } = useCurrentUser();
-  const isPirate =
-    !!me?.roles.includes("admin") || !!me?.roles.includes("glavni_pirat");
+  const effRelation = useEffectiveRelation();
+  const { isPirate } = useCurrentUser();
+  const actions = useTargetActions("clusters");
+  const bulk = useBulkTargetActions("clusters");
 
-  const enRouteFn = useServerFn(clusterSetEnRoute);
-  const cancelFn = useServerFn(clusterCancelEnRoute);
-  const collectFn = useServerFn(clusterCollect);
+  const targets: TargetRef[] = cluster.players.map((p) => ({
+    ikariam_username: p.ikariam_username,
+    coordinates: p.coordinates,
+    alliance_tag: p.alliance_tag,
+    rank: p.rank,
+    pirate_points: p.pirate_points,
+  }));
 
-  const base = {
-    period_start: period.start.toISOString(),
-    radius,
-    cluster_key: cluster.shortKey,
-  };
+  const statuses = cluster.players.map(
+    (p) => statusOf(statusMap, p.ikariam_username)?.status ?? "ready",
+  );
+  const anyEnRoute = statuses.some((s) => s === "en_route");
+  const clusterStatus = statuses.every((s) => s === "collected")
+    ? "collected"
+    : anyEnRoute
+      ? "en_route"
+      : "ready";
 
-  const statusQ = useQuery({
-    queryKey: ["cluster-status", base.period_start, radius, cluster.shortKey],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("pirate_cluster_status")
-        .select("status, assigned_pirate_name")
-        .eq("period_start", base.period_start)
-        .eq("radius", radius)
-        .eq("cluster_key", cluster.shortKey)
-        .maybeSingle();
-      return data ?? null;
-    },
-  });
-
-  const refresh = () =>
-    qc.invalidateQueries({ queryKey: ["cluster-status", base.period_start, radius, cluster.shortKey] });
-
-  const enRouteMut = useMutation({
-    mutationFn: (pirate_name?: string) => enRouteFn({ data: { ...base, pirate_name } }),
-    onSuccess: (r: any) => {
-      toast.success(`Krenuo: ${r?.assigned_pirate_name ?? "—"}`);
-      refresh();
-    },
-    onError: (e: any) => toast.error("Greška", { description: e?.message }),
-  });
-  const cancelMut = useMutation({
-    mutationFn: () => cancelFn({ data: base }),
-    onSuccess: () => {
-      toast.success("Assignment otkazan.");
-      refresh();
-    },
-    onError: (e: any) => toast.error("Greška", { description: e?.message }),
-  });
-  const collectMut = useMutation({
-    mutationFn: () => collectFn({ data: base }),
-    onSuccess: () => {
-      toast.success("Klaster označen kao pokupljen.");
-      refresh();
-    },
-    onError: (e: any) => toast.error("Greška", { description: e?.message }),
-  });
-
-  const status = statusQ.data?.status ?? "ready";
-  const protectedTags = cluster.players
-    .map((p) => ({ tag: p.alliance_tag, rel: relationOf(relations, p.alliance_tag) }))
-    .filter((x) => x.rel === "protected")
-    .map((x) => x.tag as string);
-  const uniqueProtected = Array.from(new Set(protectedTags));
-  const warning = uniqueProtected.length
-    ? `U ovom klasteru se nalaze igrači iz ZABRANJENIH saveza (${uniqueProtected.join(", ")}). Da li si siguran da želiš krenuti?`
+  const protectedNames = cluster.players
+    .filter((p) => effRelation(p.ikariam_username, p.alliance_tag).relation === "protected")
+    .map((p) => p.ikariam_username);
+  const warning = protectedNames.length
+    ? `U ovom klasteru se nalaze ZABRANJENE mete (${protectedNames.join(", ")}). Da li si siguran da želiš krenuti?`
     : undefined;
+
+  const areaLabel = `${cluster.minX}:${cluster.minY} – ${cluster.maxX}:${cluster.maxY}`;
 
   return (
     <div className="pirate-card rounded-2xl overflow-hidden">
@@ -392,45 +359,46 @@ function ClusterCard({
         </div>
         <div className="text-sm">
           <span className="text-muted-foreground">Područje:</span>{" "}
-          <span className="tabular-nums">
-            {cluster.minX}:{cluster.minY} – {cluster.maxX}:{cluster.maxY}
-          </span>
+          <span className="tabular-nums">{areaLabel}</span>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <div className="text-right">
-            <StatusBadge status={status} />
-            {status === "en_route" && (
-              <div className="text-[10px] text-muted-foreground mt-0.5">
-                {statusQ.data?.assigned_pirate_name ?? "—"}
-              </div>
-            )}
+            <StatusBadge status={clusterStatus} />
+            <div className="text-[10px] text-muted-foreground mt-0.5">cijeli klaster</div>
           </div>
-          {status === "en_route" ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={cancelMut.isPending}
-              onClick={() => cancelMut.mutate()}
-            >
-              Otkaži
-            </Button>
-          ) : (
-            <AssignDialog
-              targetLabel={`Klaster ${cluster.minX}:${cluster.minY} – ${cluster.maxX}:${cluster.maxY} (${cluster.players.length} igrača)`}
-              loading={enRouteMut.isPending}
-              warning={warning}
-              onConfirm={(name) => enRouteMut.mutate(name)}
-            />
-          )}
+          <AssignDialog
+            targetLabel={`Klaster ${areaLabel} (${cluster.players.length} igrača)`}
+            triggerLabel="Kreni (svi)"
+            warning={warning}
+            loading={bulk.enRouteAll.isPending}
+            description={
+              <>
+                Svi igrači iz klastera ({cluster.players.length}) dobijaju status EN ROUTE
+                i taj status je vidljiv svuda u aplikaciji.
+              </>
+            }
+            onConfirm={(name) =>
+              bulk.enRouteAll.mutate({ targets, pirate_name: name })
+            }
+          />
           {isPirate && (
-            <Button
-              size="sm"
-              disabled={collectMut.isPending || status === "collected"}
-              onClick={() => collectMut.mutate()}
-            >
-              <Coins className="size-3.5 mr-1.5" />
-              Pokupi
-            </Button>
+            <AssignDialog
+              targetLabel={`Klaster ${areaLabel}`}
+              triggerLabel="Pokupi (svi)"
+              variant="default"
+              title="Ko je pokupio poene klastera?"
+              description={
+                <>
+                  Svim igračima iz klastera ({cluster.players.length}) poeni se resetuju na{" "}
+                  <b>0</b> — svuda u aplikaciji — i upisuje se učinak pirata.
+                </>
+              }
+              disabled={clusterStatus === "collected"}
+              loading={bulk.collectAll.isPending}
+              onConfirm={(name) =>
+                bulk.collectAll.mutate({ targets, collected_by_name: name })
+              }
+            />
           )}
         </div>
       </div>
@@ -443,38 +411,65 @@ function ClusterCard({
               <th className="text-left py-2.5 px-2">Savez</th>
               <th className="text-right py-2.5 px-2">Poeni</th>
               <th className="text-left py-2.5 px-2">Koordinate</th>
-              <th className="text-left py-2.5 pr-4 pl-2">Grad</th>
+              <th className="text-left py-2.5 px-2">Grad</th>
+              <th className="text-left py-2.5 px-2">Status</th>
+              <th className="text-right py-2.5 pr-4 pl-2">Akcija</th>
             </tr>
           </thead>
           <tbody>
-            {cluster.players.map((p) => (
-              <tr
-                key={`${p.ikariam_username}-${p.coordinates}`}
-                className="border-t border-border hover:bg-card/60"
-              >
-                <td className="py-2 pl-4 pr-2 text-right font-display text-gold">
-                  #{p.rank}
-                </td>
-                <td className="py-2 px-2 font-medium truncate max-w-[16rem]">
-                  {p.ikariam_username}
-                </td>
-                <td className="py-2 px-2">
-                  <AllianceBadge
-                    tag={p.alliance_tag}
-                    relation={relationOf(relations, p.alliance_tag)}
-                  />
-                </td>
-                <td className="py-2 px-2 text-right tabular-nums">
-                  {p.pirate_points.toLocaleString("bs-BA")}
-                </td>
-                <td className="py-2 px-2">
-                  <CoordsLink coords={p.coordinates} />
-                </td>
-                <td className="py-2 pr-4 pl-2 text-muted-foreground truncate max-w-[12rem]">
-                  {p.city_name ?? "—"}
-                </td>
-              </tr>
-            ))}
+            {cluster.players.map((p) => {
+              const er = effRelation(p.ikariam_username, p.alliance_tag);
+              return (
+                <tr
+                  key={`${p.ikariam_username}-${p.coordinates}`}
+                  className="border-t border-border hover:bg-card/60"
+                >
+                  <td className="py-2 pl-4 pr-2 text-right font-display text-gold">
+                    #{p.rank}
+                  </td>
+                  <td className="py-2 px-2 font-medium truncate max-w-[16rem]">
+                    {p.ikariam_username}
+                  </td>
+                  <td className="py-2 px-2">
+                    <AllianceBadge
+                      tag={p.alliance_tag}
+                      relation={er.relation}
+                      fromPlayer={er.fromPlayer}
+                    />
+                  </td>
+                  <td className="py-2 px-2 text-right tabular-nums">
+                    {effectivePoints(
+                      statusMap,
+                      p.ikariam_username,
+                      p.pirate_points,
+                    ).toLocaleString("bs-BA")}
+                  </td>
+                  <td className="py-2 px-2">
+                    <CoordsLink coords={p.coordinates} />
+                  </td>
+                  <td className="py-2 px-2 text-muted-foreground truncate max-w-[12rem]">
+                    {p.city_name ?? "—"}
+                  </td>
+                  <td className="py-2 px-2">
+                    <TargetStatusCell username={p.ikariam_username} map={statusMap} />
+                  </td>
+                  <td className="py-2 pr-4 pl-2">
+                    <TargetActions
+                      target={{
+                        ikariam_username: p.ikariam_username,
+                        coordinates: p.coordinates,
+                        alliance_tag: p.alliance_tag,
+                        rank: p.rank,
+                        pirate_points: p.pirate_points,
+                      }}
+                      relation={er.relation}
+                      map={statusMap}
+                      actions={actions}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
