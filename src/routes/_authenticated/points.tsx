@@ -20,6 +20,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { TargetActions, TargetStatusCell } from "@/components/target-actions";
 import {
   effectivePoints,
+  statusOf,
   useTargetActions,
   useTargetStatusMap,
 } from "@/hooks/use-target-status";
@@ -207,6 +208,7 @@ function PointsPage() {
             <SelectItem value="all">Svi statusi</SelectItem>
             <SelectItem value="ready">READY</SelectItem>
             <SelectItem value="en_route">EN ROUTE</SelectItem>
+            <SelectItem value="collected">POKUPLJENO</SelectItem>
           </SelectContent>
         </Select>
         <Button
