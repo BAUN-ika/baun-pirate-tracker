@@ -15,6 +15,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPointsRouteImport } from './routes/_authenticated/points'
 import { Route as AuthenticatedPirateScannerRouteImport } from './routes/_authenticated/pirate-scanner'
+import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
 import { Route as AuthenticatedNearbyRouteImport } from './routes/_authenticated/nearby'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedClustersRouteImport } from './routes/_authenticated/clusters'
@@ -52,6 +53,12 @@ const AuthenticatedPirateScannerRoute =
   AuthenticatedPirateScannerRouteImport.update({
     id: '/pirate-scanner',
     path: '/pirate-scanner',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPerformanceRoute =
+  AuthenticatedPerformanceRouteImport.update({
+    id: '/performance',
+    path: '/performance',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedNearbyRoute = AuthenticatedNearbyRouteImport.update({
@@ -107,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/clusters': typeof AuthenticatedClustersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/nearby': typeof AuthenticatedNearbyRoute
+  '/performance': typeof AuthenticatedPerformanceRoute
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
@@ -122,6 +130,7 @@ export interface FileRoutesByTo {
   '/clusters': typeof AuthenticatedClustersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/nearby': typeof AuthenticatedNearbyRoute
+  '/performance': typeof AuthenticatedPerformanceRoute
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
@@ -139,6 +148,7 @@ export interface FileRoutesById {
   '/_authenticated/clusters': typeof AuthenticatedClustersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/nearby': typeof AuthenticatedNearbyRoute
+  '/_authenticated/performance': typeof AuthenticatedPerformanceRoute
   '/_authenticated/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/_authenticated/points': typeof AuthenticatedPointsRoute
   '/_authenticated/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/clusters'
     | '/dashboard'
     | '/nearby'
+    | '/performance'
     | '/pirate-scanner'
     | '/points'
     | '/highscore/submit'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/clusters'
     | '/dashboard'
     | '/nearby'
+    | '/performance'
     | '/pirate-scanner'
     | '/points'
     | '/highscore/submit'
@@ -187,6 +199,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clusters'
     | '/_authenticated/dashboard'
     | '/_authenticated/nearby'
+    | '/_authenticated/performance'
     | '/_authenticated/pirate-scanner'
     | '/_authenticated/points'
     | '/_authenticated/highscore/submit'
@@ -242,6 +255,13 @@ declare module '@tanstack/react-router' {
       path: '/pirate-scanner'
       fullPath: '/pirate-scanner'
       preLoaderRoute: typeof AuthenticatedPirateScannerRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/performance': {
+      id: '/_authenticated/performance'
+      path: '/performance'
+      fullPath: '/performance'
+      preLoaderRoute: typeof AuthenticatedPerformanceRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/nearby': {
@@ -310,6 +330,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedClustersRoute: typeof AuthenticatedClustersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedNearbyRoute: typeof AuthenticatedNearbyRoute
+  AuthenticatedPerformanceRoute: typeof AuthenticatedPerformanceRoute
   AuthenticatedPirateScannerRoute: typeof AuthenticatedPirateScannerRoute
   AuthenticatedPointsRoute: typeof AuthenticatedPointsRoute
   AuthenticatedHighscoreSubmitRoute: typeof AuthenticatedHighscoreSubmitRoute
@@ -323,6 +344,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedClustersRoute: AuthenticatedClustersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedNearbyRoute: AuthenticatedNearbyRoute,
+  AuthenticatedPerformanceRoute: AuthenticatedPerformanceRoute,
   AuthenticatedPirateScannerRoute: AuthenticatedPirateScannerRoute,
   AuthenticatedPointsRoute: AuthenticatedPointsRoute,
   AuthenticatedHighscoreSubmitRoute: AuthenticatedHighscoreSubmitRoute,
