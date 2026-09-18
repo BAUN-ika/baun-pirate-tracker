@@ -104,6 +104,7 @@ export function useTargetActions(source?: string) {
     qc.invalidateQueries({ queryKey: ["clusters-raw"] });
     qc.invalidateQueries({ queryKey: ["nearby-candidates"] });
     qc.invalidateQueries({ queryKey: ["highscore"] });
+    qc.invalidateQueries({ queryKey: ["current-targets"] });
   };
 
   const enRoute = useMutation({
@@ -165,6 +166,7 @@ export function useBulkTargetActions(source?: string) {
     qc.invalidateQueries({ queryKey: ["clusters-raw"] });
     qc.invalidateQueries({ queryKey: ["nearby-candidates"] });
     qc.invalidateQueries({ queryKey: ["highscore"] });
+    qc.invalidateQueries({ queryKey: ["current-targets"] });
   };
 
   const enRouteAll = useMutation({

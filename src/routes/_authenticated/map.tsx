@@ -1,8 +1,14 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Search, Map as MapIcon, ZoomIn, ZoomOut, SlidersHorizontal } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  Search,
+  Map as MapIcon,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  SlidersHorizontal,
+} from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,11 +25,15 @@ import { CoordsLink } from "@/components/coords-link";
 import {
   AllianceBadge,
   StatusBadge,
-  useEffectiveRelation,
   RELATION_LABEL,
   type RelationType,
 } from "@/components/alliance-badge";
-import { statusOf, useTargetStatusMap, effectivePoints } from "@/hooks/use-target-status";
+import { TargetActions } from "@/components/target-actions";
+import { useTargetActions, useTargetStatusMap } from "@/hooks/use-target-status";
+import {
+  useCurrentTargets,
+  type CurrentPirateTarget,
+} from "@/hooks/use-current-targets";
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
 
 export const Route = createFileRoute("/_authenticated/map")({
@@ -47,53 +57,6 @@ export const Route = createFileRoute("/_authenticated/map")({
   }),
 });
 
-/* ------------------------------ podaci ------------------------------ */
-
-interface Entry {
-  rank: number;
-  ikariam_username: string;
-  pirate_points: number;
-  alliance_tag: string | null;
-  coordinates: string | null;
-  city_name: string | null;
-}
-
-function useMapEntries(period: Period) {
-  return useQuery({
-    queryKey: ["highscore", "map", period.start.toISOString()],
-    queryFn: async (): Promise<Entry[]> => {
-      const PAGE = 1000;
-      let from = 0;
-      const all: Entry[] = [];
-      while (from < 50_000) {
-        const { data, error } = await supabase
-          .from("highscore_entries")
-          .select(
-            "rank, ikariam_username, pirate_points, alliance_tag, coordinates, city_name, created_at",
-          )
-          .gte("period_start", period.start.toISOString())
-          .lt("period_start", period.end.toISOString())
-          .order("created_at", { ascending: false })
-          .range(from, from + PAGE - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        all.push(...(data as unknown as Entry[]));
-        if (data.length < PAGE) break;
-        from += PAGE;
-      }
-      const seen = new Set<string>();
-      const out: Entry[] = [];
-      for (const e of all) {
-        const k = e.ikariam_username.trim().toLowerCase();
-        if (seen.has(k)) continue;
-        seen.add(k);
-        out.push(e);
-      }
-      return out;
-    },
-  });
-}
-
 /* ------------------------------ agregacija ------------------------------ */
 
 type RelKey = RelationType | "other";
@@ -110,24 +73,14 @@ const REL_LABEL: Record<RelKey, string> = {
   other: "Ostali",
 };
 
-interface MapPlayer {
-  username: string;
-  points: number;
-  alliance_tag: string | null;
-  city_name: string | null;
-  relation: RelationType | null;
-  fromPlayer: boolean;
-  relKey: RelKey;
-  status: string;
-  assigned_pirate_name: string | null;
-}
+const REL_KEYS: RelKey[] = ["our_alliance", "deal", "protected", "other"];
 
 interface Cell {
   key: string;
   x: number;
   y: number;
   total: number;
-  players: MapPlayer[];
+  players: CurrentPirateTarget[];
   byRelation: Record<RelKey, number>;
   dominant: RelKey;
   ready: number;
@@ -135,17 +88,16 @@ interface Cell {
   collected: number;
 }
 
-function parseCoords(c: string | null): { x: number; y: number } | null {
-  if (!c) return null;
-  const m = /^(\d{1,3}):(\d{1,3})$/.exec(c.trim());
-  if (!m) return null;
-  const x = Number(m[1]);
-  const y = Number(m[2]);
-  if (x < 1 || x > 100 || y < 1 || y > 100) return null;
-  return { x, y };
-}
+const relKeyOf = (t: CurrentPirateTarget): RelKey => t.effective_relation ?? "other";
 
-/* ------------------------------ stranica ------------------------------ */
+/* svijet: 100x100 polja, jedno polje = 10 world jedinica */
+const CELL = 10;
+const WORLD = 100 * CELL;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 12;
+
+const wx = (x: number) => (x - 0.5) * CELL;
+const wy = (y: number) => (y - 0.5) * CELL;
 
 function PirateMapPage() {
   const cur = getCurrentPeriod();
@@ -155,7 +107,7 @@ function PirateMapPage() {
     <div>
       <PageHeader
         title="Piratska mapa"
-        description="Vizuelni prikaz 100x100 Ikariam koordinatnog prostora — hotspotovi piratskih poena, odnosi i statusi meta."
+        description="Vizuelni prikaz 100x100 Ikariam koordinatnog prostora — hotspotovi piratskih poena, odnosi i statusi meta iz centralnog modela meta."
       />
       <Tabs defaultValue="current">
         <TabsList className="mb-4">
@@ -173,73 +125,142 @@ function PirateMapPage() {
   );
 }
 
-const SIZE = 1000; // interni SVG koordinatni prostor
-const PAD = 40;
-
 function MapView({ period, label }: { period: Period; label: string }) {
-  const { data, isLoading } = useMapEntries(period);
-  const { map: statuses } = useTargetStatusMap();
-  const effRelation = useEffectiveRelation();
+  const { targets, isLoading } = useCurrentTargets(period);
+  const { map: statusMap } = useTargetStatusMap();
+  const actions = useTargetActions("map");
 
   const [search, setSearch] = useState("");
   const [relFilter, setRelFilter] = useState("all");
   const [allianceFilter, setAllianceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [minPoints, setMinPoints] = useState("");
-  const [zoom, setZoom] = useState(1);
   const [showFilters, setShowFilters] = useState(true);
   const [hover, setHover] = useState<{ cell: Cell; left: number; top: number } | null>(null);
-  const [selected, setSelected] = useState<Cell | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  // raw entries -> relation resolution -> filter -> group -> totals
-  const { cells, maxTotal, allianceTags, visibleCount } = useMemo(() => {
-    const players: (MapPlayer & { x: number; y: number })[] = [];
-    const tags = new Set<string>();
+  /* kamera: viewBox nad world prostorom */
+  const [zoom, setZoom] = useState(1);
+  const [cam, setCam] = useState({ x: 0, y: 0 });
+  const hostRef = useRef<HTMLDivElement>(null);
+  const camRef = useRef({ zoom: 1, x: 0, y: 0 });
+  camRef.current = { zoom, x: cam.x, y: cam.y };
 
-    const q = search.trim().toLowerCase();
-    const min = Number(minPoints);
+  const view = WORLD / zoom;
+  const clamp = (v: number, span: number) => Math.min(Math.max(0, v), WORLD - span);
 
-    for (const e of data ?? []) {
-      const pos = parseCoords(e.coordinates);
-      if (!pos) continue;
-      if (e.alliance_tag) tags.add(e.alliance_tag);
+  const applyZoom = useCallback((next: number, anchor?: { fx: number; fy: number }) => {
+    const c = camRef.current;
+    const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
+    const oldSpan = WORLD / c.zoom;
+    const newSpan = WORLD / z;
+    const fx = anchor?.fx ?? 0.5;
+    const fy = anchor?.fy ?? 0.5;
+    const worldX = c.x + fx * oldSpan;
+    const worldY = c.y + fy * oldSpan;
+    const nx = Math.min(Math.max(0, worldX - fx * newSpan), WORLD - newSpan);
+    const ny = Math.min(Math.max(0, worldY - fy * newSpan), WORLD - newSpan);
+    setZoom(z);
+    setCam({ x: nx, y: ny });
+  }, []);
 
-      const eff = effRelation(e.ikariam_username, e.alliance_tag);
-      const relKey: RelKey = eff.relation ?? "other";
-      const st = statusOf(statuses, e.ikariam_username);
-      const status = st?.status ?? "ready";
-      const points = effectivePoints(statuses, e.ikariam_username, e.pirate_points);
+  /* wheel / pinch zoom — non-passive listener */
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const fx = (e.clientX - rect.left) / rect.width;
+      const fy = (e.clientY - rect.top) / rect.height;
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      applyZoom(camRef.current.zoom * Math.exp(-dy * 0.0018), { fx, fy });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [applyZoom]);
 
-      if (q && !e.ikariam_username.toLowerCase().includes(q)) continue;
-      if (relFilter !== "all" && relKey !== relFilter) continue;
-      if (allianceFilter !== "all" && (e.alliance_tag ?? "") !== allianceFilter) continue;
-      if (statusFilter !== "all" && status !== statusFilter) continue;
-      if (minPoints && Number.isFinite(min) && points < min) continue;
+  /* pan (drag) + pinch (dva pointera) */
+  const drag = useRef<{ id: number; x: number; y: number } | null>(null);
+  const pinch = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinchDist = useRef<number | null>(null);
 
-      players.push({
-        username: e.ikariam_username,
-        points,
-        alliance_tag: e.alliance_tag,
-        city_name: e.city_name,
-        relation: eff.relation,
-        fromPlayer: eff.fromPlayer,
-        relKey,
-        status,
-        assigned_pirate_name: st?.assigned_pirate_name ?? null,
-        x: pos.x,
-        y: pos.y,
-      });
+  const onPointerDown = (e: React.PointerEvent) => {
+    pinch.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch.current.size === 1) {
+      drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    } else {
+      drag.current = null;
+      pinchDist.current = null;
+    }
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const el = hostRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (pinch.current.has(e.pointerId))
+      pinch.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pinch.current.size >= 2) {
+      const [a, b] = Array.from(pinch.current.values());
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchDist.current != null && pinchDist.current > 0) {
+        const fx = ((a.x + b.x) / 2 - rect.left) / rect.width;
+        const fy = ((a.y + b.y) / 2 - rect.top) / rect.height;
+        applyZoom(camRef.current.zoom * (d / pinchDist.current), { fx, fy });
+      }
+      pinchDist.current = d;
+      return;
     }
 
+    const d0 = drag.current;
+    if (!d0 || d0.id !== e.pointerId) return;
+    const span = WORLD / camRef.current.zoom;
+    const dx = ((e.clientX - d0.x) / rect.width) * span;
+    const dy = ((e.clientY - d0.y) / rect.height) * span;
+    drag.current = { id: d0.id, x: e.clientX, y: e.clientY };
+    setCam((c) => ({
+      x: Math.min(Math.max(0, c.x - dx), WORLD - span),
+      y: Math.min(Math.max(0, c.y - dy), WORLD - span),
+    }));
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    pinch.current.delete(e.pointerId);
+    if (drag.current?.id === e.pointerId) drag.current = null;
+    if (pinch.current.size < 2) pinchDist.current = null;
+  };
+
+  /* merged targets -> filter -> group by coordinates */
+  const { cells, maxTotal, allianceTags, visibleCount, coordCount } = useMemo(() => {
+    const tags = new Set<string>();
+    const q = search.trim().toLowerCase();
+    const min = Number(minPoints);
+    const withCoords = targets.filter((t) => t.x != null && t.y != null);
+    for (const t of withCoords) if (t.alliance_tag) tags.add(t.alliance_tag);
+
+    const visible = withCoords.filter((t) => {
+      const relKey = relKeyOf(t);
+      if (q && !t.username.toLowerCase().includes(q)) return false;
+      if (relFilter !== "all" && relKey !== relFilter) return false;
+      if (allianceFilter !== "all" && (t.alliance_tag ?? "") !== allianceFilter) return false;
+      if (statusFilter !== "all" && t.target_status !== statusFilter) return false;
+      if (sourceFilter !== "all" && t.source !== sourceFilter) return false;
+      if (minPoints && Number.isFinite(min) && t.current_pirate_points < min) return false;
+      return true;
+    });
+
     const byCell = new Map<string, Cell>();
-    for (const p of players) {
-      const key = `${p.x}:${p.y}`;
+    for (const t of visible) {
+      const key = `${t.x}:${t.y}`;
       let c = byCell.get(key);
       if (!c) {
         c = {
           key,
-          x: p.x,
-          y: p.y,
+          x: t.x as number,
+          y: t.y as number,
           total: 0,
           players: [],
           byRelation: { our_alliance: 0, deal: 0, protected: 0, other: 0 },
@@ -250,21 +271,20 @@ function MapView({ period, label }: { period: Period; label: string }) {
         };
         byCell.set(key, c);
       }
-      c.total += p.points;
-      c.byRelation[p.relKey] += p.points;
-      c.players.push(p);
-      if (p.status === "en_route") c.en_route += 1;
-      else if (p.status === "collected") c.collected += 1;
+      c.total += t.current_pirate_points;
+      c.byRelation[relKeyOf(t)] += t.current_pirate_points;
+      c.players.push(t);
+      if (t.target_status === "en_route") c.en_route += 1;
+      else if (t.target_status === "collected") c.collected += 1;
       else c.ready += 1;
     }
 
     let max = 0;
     for (const c of byCell.values()) {
-      c.players.sort((a, b) => b.points - a.points);
-      // dominantni odnos = najviše poena; pri nuli fallback na najčešći
+      c.players.sort((a, b) => b.current_pirate_points - a.current_pirate_points);
       let best: RelKey = "other";
       let bestVal = -1;
-      for (const k of ["our_alliance", "deal", "protected", "other"] as RelKey[]) {
+      for (const k of REL_KEYS) {
         if (c.byRelation[k] > bestVal) {
           bestVal = c.byRelation[k];
           best = k;
@@ -272,7 +292,8 @@ function MapView({ period, label }: { period: Period; label: string }) {
       }
       if (bestVal <= 0) {
         const counts = new Map<RelKey, number>();
-        for (const p of c.players) counts.set(p.relKey, (counts.get(p.relKey) ?? 0) + 1);
+        for (const p of c.players)
+          counts.set(relKeyOf(p), (counts.get(relKeyOf(p)) ?? 0) + 1);
         let cb: RelKey = "other";
         let cv = -1;
         for (const [k, v] of counts) if (v > cv) ((cv = v), (cb = k));
@@ -286,44 +307,57 @@ function MapView({ period, label }: { period: Period; label: string }) {
       cells: Array.from(byCell.values()).sort((a, b) => a.total - b.total),
       maxTotal: max,
       allianceTags: Array.from(tags).sort((a, b) => a.localeCompare(b)),
-      visibleCount: players.length,
+      visibleCount: visible.length,
+      coordCount: withCoords.length,
     };
-  }, [data, statuses, effRelation, search, relFilter, allianceFilter, statusFilter, minPoints]);
+  }, [targets, search, relFilter, allianceFilter, statusFilter, sourceFilter, minPoints]);
 
-  // sqrt/log skala intenziteta (0..1)
+  const selected = selectedKey ? (cells.find((c) => c.key === selectedKey) ?? null) : null;
+
   const intensity = (total: number) => {
-    if (maxTotal <= 0 || total <= 0) return 0.12;
+    if (maxTotal <= 0 || total <= 0) return 0.1;
     const v = Math.log10(1 + total) / Math.log10(1 + maxTotal);
-    return Math.min(1, Math.max(0.12, v));
+    return Math.min(1, Math.max(0.1, v));
   };
 
-  const px = (x: number) => PAD + ((x - 1) / 99) * (SIZE - 2 * PAD);
-  const py = (y: number) => PAD + ((y - 1) / 99) * (SIZE - 2 * PAD);
+  /* screen-space veličine: world = screen / zoom */
+  const s = (screenUnits: number) => screenUnits / zoom;
+  const gridStep = zoom >= 4 ? 1 : zoom >= 2 ? 5 : 10;
+  const labelStep = zoom >= 6 ? 1 : zoom >= 3 ? 2 : zoom >= 1.6 ? 5 : 10;
 
-  const hasCoords = (data ?? []).some((e) => parseCoords(e.coordinates));
+  const gridLines: number[] = [];
+  const startI = Math.max(1, Math.floor(cam.x / CELL) - 1);
+  const endI = Math.min(100, Math.ceil((cam.x + view) / CELL) + 1);
+  const startJ = Math.max(1, Math.floor(cam.y / CELL) - 1);
+  const endJ = Math.min(100, Math.ceil((cam.y + view) / CELL) + 1);
+  for (let i = Math.max(0, startI - 1); i <= endI; i++)
+    if (i % gridStep === 0 || gridStep === 1) gridLines.push(i);
+
+  const xLabels: number[] = [];
+  for (let i = startI; i <= endI; i++) if (i % labelStep === 0 || i === 1) xLabels.push(i);
+  const yLabels: number[] = [];
+  for (let j = startJ; j <= endJ; j++) if (j % labelStep === 0 || j === 1) yLabels.push(j);
 
   return (
     <div>
       <div className="text-xs text-muted-foreground mb-3">
         {label}: {period.start.toLocaleString("bs-BA")} → {period.end.toLocaleString("bs-BA")}
         {" · "}
-        {visibleCount.toLocaleString("bs-BA")} igrača na {cells.length.toLocaleString("bs-BA")}{" "}
-        koordinata
+        {visibleCount.toLocaleString("bs-BA")} / {coordCount.toLocaleString("bs-BA")} meta sa
+        koordinatama na {cells.length.toLocaleString("bs-BA")} lokacija
       </div>
 
       {/* filteri */}
       <div className="pirate-card rounded-2xl p-4 mb-4">
         <div className="flex items-center justify-between lg:hidden mb-3">
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Filteri</div>
-          <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)}>
+          <Button variant="outline" size="sm" onClick={() => setShowFilters((v) => !v)}>
             <SlidersHorizontal className="size-4 mr-2" />
             {showFilters ? "Sakrij" : "Prikaži"}
           </Button>
         </div>
         <div
-          className={
-            (showFilters ? "flex" : "hidden lg:flex") + " flex-col lg:flex-row gap-3"
-          }
+          className={(showFilters ? "flex" : "hidden lg:flex") + " flex-col lg:flex-row gap-3"}
         >
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -335,7 +369,7 @@ function MapView({ period, label }: { period: Period; label: string }) {
             />
           </div>
           <Select value={relFilter} onValueChange={setRelFilter}>
-            <SelectTrigger className="lg:w-44">
+            <SelectTrigger className="lg:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -347,7 +381,7 @@ function MapView({ period, label }: { period: Period; label: string }) {
             </SelectContent>
           </Select>
           <Select value={allianceFilter} onValueChange={setAllianceFilter}>
-            <SelectTrigger className="lg:w-40">
+            <SelectTrigger className="lg:w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -360,7 +394,7 @@ function MapView({ period, label }: { period: Period; label: string }) {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="lg:w-40">
+            <SelectTrigger className="lg:w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -370,12 +404,23 @@ function MapView({ period, label }: { period: Period; label: string }) {
               <SelectItem value="collected">POKUPLJENO</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+            <SelectTrigger className="lg:w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Svi izvori</SelectItem>
+              <SelectItem value="alliance">Savezni nalog</SelectItem>
+              <SelectItem value="highscore">Highscore</SelectItem>
+              <SelectItem value="both">Oba izvora</SelectItem>
+            </SelectContent>
+          </Select>
           <Input
             type="number"
             placeholder="Min poeni"
             value={minPoints}
             onChange={(e) => setMinPoints(e.target.value)}
-            className="lg:w-32"
+            className="lg:w-28"
           />
         </div>
       </div>
@@ -383,7 +428,7 @@ function MapView({ period, label }: { period: Period; label: string }) {
       {/* legenda + zoom */}
       <div className="pirate-card rounded-2xl p-4 mb-4 flex flex-wrap items-center gap-4 justify-between">
         <div className="flex flex-wrap items-center gap-4">
-          {(["our_alliance", "deal", "protected", "other"] as RelKey[]).map((k) => (
+          {REL_KEYS.map((k) => (
             <div key={k} className="flex items-center gap-2 text-xs">
               <span
                 className="size-3 rounded-full"
@@ -404,17 +449,28 @@ function MapView({ period, label }: { period: Period; label: string }) {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setZoom((z) => Math.max(1, +(z - 0.5).toFixed(1)))}
+            onClick={() => applyZoom(camRef.current.zoom / 1.5)}
           >
             <ZoomOut className="size-4" />
           </Button>
-          <div className="text-xs tabular-nums w-10 text-center">{zoom.toFixed(1)}x</div>
+          <div className="text-xs tabular-nums w-12 text-center">{zoom.toFixed(1)}x</div>
           <Button
             variant="outline"
             size="icon"
-            onClick={() => setZoom((z) => Math.min(4, +(z + 0.5).toFixed(1)))}
+            onClick={() => applyZoom(camRef.current.zoom * 1.5)}
           >
             <ZoomIn className="size-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setZoom(1);
+              setCam({ x: 0, y: 0 });
+            }}
+          >
+            <RotateCcw className="size-4 mr-1.5" />
+            Reset
           </Button>
         </div>
       </div>
@@ -423,7 +479,7 @@ function MapView({ period, label }: { period: Period; label: string }) {
       <div className="pirate-card rounded-2xl p-3">
         {isLoading ? (
           <div className="p-6 text-sm text-muted-foreground">Učitavam mapu...</div>
-        ) : !hasCoords ? (
+        ) : coordCount === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
             Nema dovoljno podataka sa koordinatama za prikaz mape.
           </div>
@@ -432,235 +488,243 @@ function MapView({ period, label }: { period: Period; label: string }) {
             Nema igrača koji odgovaraju odabranim filterima.
           </div>
         ) : (
-          <div className="relative overflow-auto">
-            <div
-              className="relative mx-auto"
-              style={{ width: `${zoom * 100}%`, maxWidth: zoom === 1 ? "900px" : "none" }}
-              onMouseLeave={() => setHover(null)}
+          <div
+            ref={hostRef}
+            className="relative mx-auto max-w-[900px] touch-none select-none overflow-hidden rounded-xl border border-border"
+            style={{ aspectRatio: "1 / 1", cursor: "grab" }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onMouseLeave={() => setHover(null)}
+          >
+            <svg
+              viewBox={`${cam.x} ${cam.y} ${view} ${view}`}
+              className="w-full h-full"
+              style={{ background: "color-mix(in oklab, var(--background) 70%, transparent)" }}
             >
-              <svg
-                viewBox={`0 0 ${SIZE} ${SIZE}`}
-                className="w-full h-auto select-none touch-pan-y"
-                style={{ aspectRatio: "1 / 1" }}
-              >
-                <defs>
-                  <filter id="pm-glow" x="-80%" y="-80%" width="260%" height="260%">
-                    <feGaussianBlur stdDeviation="10" result="b" />
-                    <feMerge>
-                      <feMergeNode in="b" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-
-                <rect
-                  x={PAD}
-                  y={PAD}
-                  width={SIZE - 2 * PAD}
-                  height={SIZE - 2 * PAD}
-                  fill="var(--background)"
-                  fillOpacity={0.55}
+              {/* grid */}
+              {gridLines.map((i) => (
+                <line
+                  key={`v${i}`}
+                  x1={i * CELL}
+                  y1={cam.y}
+                  x2={i * CELL}
+                  y2={cam.y + view}
                   stroke="var(--border)"
+                  strokeOpacity={i % 10 === 0 ? 0.6 : gridStep === 1 ? 0.18 : 0.32}
+                  strokeWidth={s(i % 10 === 0 ? 1 : 0.5)}
                 />
+              ))}
+              {gridLines.map((j) => (
+                <line
+                  key={`h${j}`}
+                  x1={cam.x}
+                  y1={j * CELL}
+                  x2={cam.x + view}
+                  y2={j * CELL}
+                  stroke="var(--border)"
+                  strokeOpacity={j % 10 === 0 ? 0.6 : gridStep === 1 ? 0.18 : 0.32}
+                  strokeWidth={s(j % 10 === 0 ? 1 : 0.5)}
+                />
+              ))}
 
-                {/* grid + labele */}
-                {Array.from({ length: 11 }, (_, i) => i * 10).map((v) => {
-                  const c = Math.max(1, v);
-                  const gx = px(c);
-                  const gy = py(c);
-                  return (
-                    <g key={v}>
-                      <line
-                        x1={gx}
-                        y1={PAD}
-                        x2={gx}
-                        y2={SIZE - PAD}
-                        stroke="var(--border)"
-                        strokeOpacity={v % 20 === 0 ? 0.55 : 0.28}
-                      />
-                      <line
-                        x1={PAD}
-                        y1={gy}
-                        x2={SIZE - PAD}
-                        y2={gy}
-                        stroke="var(--border)"
-                        strokeOpacity={v % 20 === 0 ? 0.55 : 0.28}
-                      />
-                      <text
-                        x={gx}
-                        y={PAD - 12}
-                        fill="var(--muted-foreground)"
-                        fontSize={18}
-                        textAnchor="middle"
-                      >
-                        {c}
-                      </text>
-                      <text
-                        x={PAD - 10}
-                        y={gy + 6}
-                        fill="var(--muted-foreground)"
-                        fontSize={18}
-                        textAnchor="end"
-                      >
-                        {c}
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* hotspotovi */}
+              {/* heat/glow sloj — ne prima klikove */}
+              <g pointerEvents="none">
                 {cells.map((c) => {
                   const t = intensity(c.total);
-                  const color = REL_COLOR[c.dominant];
-                  const r = 5 + t * 16;
-                  const faded = c.collected === c.players.length;
                   return (
-                    <g
-                      key={c.key}
-                      style={{ cursor: "pointer" }}
-                      opacity={faded ? 0.45 : 1}
-                      onMouseEnter={(ev) => {
-                        const host = (ev.currentTarget.ownerSVGElement?.parentElement ??
-                          null) as HTMLElement | null;
-                        const box = host?.getBoundingClientRect();
-                        setHover({
-                          cell: c,
-                          left: box ? ev.clientX - box.left : 0,
-                          top: box ? ev.clientY - box.top : 0,
-                        });
-                      }}
-                      onMouseMove={(ev) => {
-                        const host = (ev.currentTarget.ownerSVGElement?.parentElement ??
-                          null) as HTMLElement | null;
-                        const box = host?.getBoundingClientRect();
-                        setHover((h) =>
-                          h && h.cell.key === c.key
-                            ? {
-                                cell: c,
-                                left: box ? ev.clientX - box.left : 0,
-                                top: box ? ev.clientY - box.top : 0,
-                              }
-                            : h,
-                        );
-                      }}
-                      onClick={() => setSelected(c)}
-                    >
-                      <circle
-                        cx={px(c.x)}
-                        cy={py(c.y)}
-                        r={r * 2.4}
-                        fill={color}
-                        opacity={0.1 + t * 0.22}
-                        filter="url(#pm-glow)"
-                      />
-                      <circle
-                        cx={px(c.x)}
-                        cy={py(c.y)}
-                        r={r}
-                        fill={color}
-                        opacity={0.35 + t * 0.6}
-                      />
-                      <circle
-                        cx={px(c.x)}
-                        cy={py(c.y)}
-                        r={r}
-                        fill="none"
-                        stroke={color}
-                        strokeOpacity={0.9}
-                        strokeWidth={1.5}
-                      />
-                      {/* multi-relation prsten */}
-                      {Object.values(c.byRelation).filter((v) => v > 0).length > 1 && (
-                        <circle
-                          cx={px(c.x)}
-                          cy={py(c.y)}
-                          r={r + 4}
-                          fill="none"
-                          stroke="var(--foreground)"
-                          strokeOpacity={0.5}
-                          strokeDasharray="4 4"
-                          strokeWidth={1}
-                        />
-                      )}
-                      {c.en_route > 0 && (
-                        <circle
-                          cx={px(c.x) + r + 3}
-                          cy={py(c.y) - r - 3}
-                          r={4}
-                          fill="var(--gold)"
-                          stroke="var(--background)"
-                        />
-                      )}
-                      {c.collected > 0 && (
-                        <text
-                          x={px(c.x) - r - 5}
-                          y={py(c.y) - r - 2}
-                          fontSize={16}
-                          fill="var(--muted-foreground)"
-                          textAnchor="middle"
-                        >
-                          ✓
-                        </text>
-                      )}
-                    </g>
+                    <circle
+                      key={`g-${c.key}`}
+                      cx={wx(c.x)}
+                      cy={wy(c.y)}
+                      r={s(10 + t * 22)}
+                      fill={REL_COLOR[c.dominant]}
+                      opacity={(0.08 + t * 0.2) * (c.collected === c.players.length ? 0.4 : 1)}
+                      style={{ filter: "blur(6px)" }}
+                    />
                   );
                 })}
-              </svg>
+              </g>
 
-              {hover && (
-                <div
-                  className="pointer-events-none absolute z-20 w-64 max-h-64 overflow-hidden rounded-xl border border-gold/30 bg-popover/95 p-3 text-xs shadow-xl"
-                  style={{
-                    left: Math.max(4, hover.left + 12),
-                    top: Math.max(4, hover.top + 12),
-                  }}
-                >
-                  <div className="font-display text-gold text-sm">{hover.cell.key}</div>
-                  <div className="text-muted-foreground mb-2">
-                    {hover.cell.total.toLocaleString("bs-BA")} ukupno ·{" "}
-                    {hover.cell.players.length} igrača
-                  </div>
-                  <div className="space-y-1.5">
-                    {hover.cell.players.slice(0, 6).map((p) => (
-                      <div key={p.username} className="border-t border-border pt-1.5">
-                        <div className="flex justify-between gap-2">
-                          <span className="truncate font-medium">{p.username}</span>
-                          <span className="tabular-nums">
-                            {p.points.toLocaleString("bs-BA")}
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {p.alliance_tag ?? "—"} · {REL_LABEL[p.relKey]} ·{" "}
-                          {p.status === "en_route"
-                            ? `EN ROUTE · ${p.assigned_pirate_name ?? "—"}`
-                            : p.status === "collected"
-                              ? "POKUPLJENO"
-                              : "READY"}
-                        </div>
-                      </div>
-                    ))}
-                    {hover.cell.players.length > 6 && (
-                      <div className="text-[10px] text-muted-foreground pt-1">
-                        + još {hover.cell.players.length - 6} — klikni za detalje
-                      </div>
+              {/* markeri — fiksna screen-space veličina */}
+              {cells.map((c) => {
+                const t = intensity(c.total);
+                const color = REL_COLOR[c.dominant];
+                const multi = c.players.length > 1;
+                const r = s(3.5 + t * 4 + (multi ? 1.5 : 0));
+                const faded = c.collected === c.players.length;
+                const onEnter = (ev: React.MouseEvent) => {
+                  const box = hostRef.current?.getBoundingClientRect();
+                  setHover({
+                    cell: c,
+                    left: box ? ev.clientX - box.left : 0,
+                    top: box ? ev.clientY - box.top : 0,
+                  });
+                };
+                return (
+                  <g
+                    key={c.key}
+                    opacity={faded ? 0.45 : 1}
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={onEnter}
+                    onMouseMove={onEnter}
+                    onClick={() => setSelectedKey(c.key)}
+                  >
+                    {/* precizna klik zona vezana za polje */}
+                    <rect
+                      x={wx(c.x) - Math.min(CELL / 2, s(7))}
+                      y={wy(c.y) - Math.min(CELL / 2, s(7))}
+                      width={Math.min(CELL, s(14))}
+                      height={Math.min(CELL, s(14))}
+                      fill="transparent"
+                    />
+                    <circle
+                      cx={wx(c.x)}
+                      cy={wy(c.y)}
+                      r={r}
+                      fill={color}
+                      opacity={0.4 + t * 0.6}
+                      stroke={color}
+                      strokeWidth={s(1)}
+                    />
+                    {multi && (
+                      <>
+                        <circle
+                          cx={wx(c.x)}
+                          cy={wy(c.y)}
+                          r={r + s(2.5)}
+                          fill="none"
+                          stroke={color}
+                          strokeOpacity={0.8}
+                          strokeWidth={s(0.8)}
+                        />
+                        <text
+                          x={wx(c.x) + r + s(3)}
+                          y={wy(c.y) - r - s(1)}
+                          fontSize={s(7)}
+                          fill="var(--foreground)"
+                          style={{ paintOrder: "stroke" }}
+                          stroke="var(--background)"
+                          strokeWidth={s(1.6)}
+                        >
+                          {c.players.length}
+                        </text>
+                      </>
                     )}
-                  </div>
+                    {c.en_route > 0 && (
+                      <circle
+                        cx={wx(c.x) - r - s(2)}
+                        cy={wy(c.y) - r - s(2)}
+                        r={s(2)}
+                        fill="var(--gold)"
+                        stroke="var(--background)"
+                        strokeWidth={s(0.6)}
+                      />
+                    )}
+                  </g>
+                );
+              })}
+
+              {/* axis labele — konstantna screen veličina, unutar viewporta */}
+              <g pointerEvents="none">
+                {xLabels.map((i) => (
+                  <text
+                    key={`xl${i}`}
+                    x={wx(i)}
+                    y={cam.y + s(12)}
+                    fontSize={s(9)}
+                    fill="var(--muted-foreground)"
+                    textAnchor="middle"
+                  >
+                    {i}
+                  </text>
+                ))}
+                {yLabels.map((j) => (
+                  <text
+                    key={`yl${j}`}
+                    x={cam.x + s(4)}
+                    y={wy(j) + s(3)}
+                    fontSize={s(9)}
+                    fill="var(--muted-foreground)"
+                  >
+                    {j}
+                  </text>
+                ))}
+              </g>
+            </svg>
+
+            {hover && (
+              <div
+                className="pointer-events-none absolute z-20 w-64 max-h-64 overflow-hidden rounded-xl border border-gold/30 bg-popover/95 p-3 text-xs shadow-xl"
+                style={{ left: Math.max(4, hover.left + 12), top: Math.max(4, hover.top + 12) }}
+              >
+                <div className="font-display text-gold text-sm">{hover.cell.key}</div>
+                <div className="text-muted-foreground mb-2">
+                  {hover.cell.total.toLocaleString("bs-BA")} ukupno ·{" "}
+                  {hover.cell.players.length} igrača
                 </div>
-              )}
-            </div>
+                <div className="space-y-1.5">
+                  {hover.cell.players.slice(0, 6).map((p) => (
+                    <div key={p.canonical_player_key} className="border-t border-border pt-1.5">
+                      <div className="flex justify-between gap-2">
+                        <span className="truncate font-medium">{p.username}</span>
+                        <span className="tabular-nums">
+                          {p.current_pirate_points.toLocaleString("bs-BA")}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">
+                        {p.alliance_tag ?? "—"} · {REL_LABEL[relKeyOf(p)]} ·{" "}
+                        {p.target_status === "en_route"
+                          ? `EN ROUTE · ${p.assigned_pirate_name ?? "—"}`
+                          : p.target_status === "collected"
+                            ? "POKUPLJENO"
+                            : "READY"}
+                      </div>
+                    </div>
+                  ))}
+                  {hover.cell.players.length > 6 && (
+                    <div className="text-[10px] text-muted-foreground pt-1">
+                      + još {hover.cell.players.length - 6} — klikni za detalje
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <CellDialog cell={selected} onClose={() => setSelected(null)} />
+      <CellDialog
+        cell={selected}
+        onClose={() => setSelectedKey(null)}
+        statusMap={statusMap}
+        actions={actions}
+      />
     </div>
   );
 }
 
-function CellDialog({ cell, onClose }: { cell: Cell | null; onClose: () => void }) {
+const SOURCE_LABEL: Record<string, string> = {
+  alliance: "Savezni nalog",
+  highscore: "Highscore",
+  both: "Oba izvora",
+};
+
+function CellDialog({
+  cell,
+  onClose,
+  statusMap,
+  actions,
+}: {
+  cell: Cell | null;
+  onClose: () => void;
+  statusMap: ReturnType<typeof useTargetStatusMap>["map"];
+  actions: ReturnType<typeof useTargetActions>;
+}) {
   return (
     <Dialog open={!!cell} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapIcon className="size-4 text-gold" />
@@ -705,22 +769,20 @@ function CellDialog({ cell, onClose }: { cell: Cell | null; onClose: () => void 
                 Poeni po odnosu
               </div>
               <div className="flex flex-wrap gap-3 text-xs">
-                {(["our_alliance", "deal", "protected", "other"] as RelKey[])
-                  .filter((k) => cell.byRelation[k] > 0)
-                  .map((k) => (
-                    <span key={k} className="flex items-center gap-1.5">
-                      <span
-                        className="size-2.5 rounded-full"
-                        style={{ background: REL_COLOR[k] }}
-                      />
-                      {REL_LABEL[k]}: {cell.byRelation[k].toLocaleString("bs-BA")}
-                      {cell.dominant === k ? " (dominantno)" : ""}
-                    </span>
-                  ))}
+                {REL_KEYS.filter((k) => cell.byRelation[k] > 0).map((k) => (
+                  <span key={k} className="flex items-center gap-1.5">
+                    <span
+                      className="size-2.5 rounded-full"
+                      style={{ background: REL_COLOR[k] }}
+                    />
+                    {REL_LABEL[k]}: {cell.byRelation[k].toLocaleString("bs-BA")}
+                    {cell.dominant === k ? " (dominantno)" : ""}
+                  </span>
+                ))}
               </div>
             </div>
 
-            <div className="max-h-72 overflow-y-auto rounded-xl border border-border">
+            <div className="max-h-80 overflow-y-auto rounded-xl border border-border">
               <table className="w-full text-sm">
                 <thead className="text-[10px] uppercase tracking-widest text-muted-foreground bg-card/40">
                   <tr>
@@ -728,35 +790,54 @@ function CellDialog({ cell, onClose }: { cell: Cell | null; onClose: () => void 
                     <th className="text-right py-2 px-2">Poeni</th>
                     <th className="text-left py-2 px-2">Savez / odnos</th>
                     <th className="text-left py-2 px-2">Grad</th>
-                    <th className="text-left py-2 px-3">Status</th>
+                    <th className="text-left py-2 px-2">Izvor</th>
+                    <th className="text-left py-2 px-2">Status</th>
+                    <th className="text-right py-2 px-3">Akcija</th>
                   </tr>
                 </thead>
                 <tbody>
                   {cell.players.map((p) => (
-                    <tr key={p.username} className="border-t border-border">
-                      <td className="py-2 px-3 font-medium truncate max-w-[12rem]">
+                    <tr key={p.canonical_player_key} className="border-t border-border">
+                      <td className="py-2 px-3 font-medium truncate max-w-[11rem]">
                         {p.username}
                       </td>
                       <td className="py-2 px-2 text-right tabular-nums">
-                        {p.points.toLocaleString("bs-BA")}
+                        {p.current_pirate_points.toLocaleString("bs-BA")}
                       </td>
                       <td className="py-2 px-2">
                         <AllianceBadge
                           tag={p.alliance_tag}
-                          relation={p.relation}
-                          fromPlayer={p.fromPlayer}
+                          relation={p.effective_relation}
+                          fromPlayer={p.relation_from_player}
                         />
                       </td>
-                      <td className="py-2 px-2 text-muted-foreground truncate max-w-[10rem]">
+                      <td className="py-2 px-2 text-muted-foreground truncate max-w-[9rem]">
                         {p.city_name ?? "—"}
                       </td>
-                      <td className="py-2 px-3">
-                        <StatusBadge status={p.status} />
-                        {p.status === "en_route" && (
+                      <td className="py-2 px-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {SOURCE_LABEL[p.source]}
+                      </td>
+                      <td className="py-2 px-2">
+                        <StatusBadge status={p.target_status} />
+                        {p.target_status === "en_route" && (
                           <div className="text-[10px] text-muted-foreground">
                             {p.assigned_pirate_name ?? "—"}
                           </div>
                         )}
+                      </td>
+                      <td className="py-2 px-3">
+                        <TargetActions
+                          target={{
+                            ikariam_username: p.username,
+                            coordinates: p.coordinates,
+                            alliance_tag: p.alliance_tag,
+                            rank: p.rank,
+                            pirate_points: p.current_pirate_points,
+                          }}
+                          relation={p.effective_relation}
+                          map={statusMap}
+                          actions={actions}
+                        />
                       </td>
                     </tr>
                   ))}
