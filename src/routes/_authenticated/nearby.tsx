@@ -300,8 +300,25 @@ function NearbyPage() {
                     <td className="py-2 px-2 text-right text-muted-foreground tabular-nums">
                       {r.rank ? `#${r.rank}` : "—"}
                     </td>
-                    <td className="py-2 pr-4 pl-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                    <td className="py-2 px-2 text-[10px] uppercase tracking-widest text-muted-foreground">
                       {r.source === "alliance" ? "Savez" : "Highscore"}
+                    </td>
+                    <td className="py-2 px-2">
+                      <TargetStatusCell username={r.username} map={statusMap} />
+                    </td>
+                    <td className="py-2 pr-4 pl-2">
+                      <TargetActions
+                        target={{
+                          ikariam_username: r.username,
+                          coordinates: r.coordinates,
+                          alliance_tag: r.alliance_tag,
+                          rank: r.rank,
+                          pirate_points: r.points,
+                        }}
+                        relation={effRelation(r.username, r.alliance_tag).relation}
+                        map={statusMap}
+                        actions={actions}
+                      />
                     </td>
                   </tr>
                 ))}
