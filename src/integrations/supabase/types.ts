@@ -423,6 +423,77 @@ export type Database = {
           },
         ]
       }
+      pirate_region_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_type: string
+          region_id: string
+          x_end: number
+          x_start: number
+          y_end: number
+          y_start: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_type?: string
+          region_id: string
+          x_end: number
+          x_start: number
+          y_end: number
+          y_start: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_type?: string
+          region_id?: string
+          x_end?: number
+          x_start?: number
+          y_end?: number
+          y_start?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pirate_region_items_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "pirate_regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pirate_regions: {
+        Row: {
+          color: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string | null
+          pirate_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string | null
+          pirate_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string | null
+          pirate_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pirate_rounds: {
         Row: {
           completed_at: string | null

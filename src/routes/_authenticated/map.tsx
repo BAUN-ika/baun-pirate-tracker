@@ -35,6 +35,9 @@ import {
   type CurrentPirateTarget,
 } from "@/hooks/use-current-targets";
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
+import { useRegions, type PirateRegion } from "@/hooks/use-regions";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_authenticated/map")({
   component: PirateMapPage,
@@ -139,6 +142,29 @@ function MapView({ period, label }: { period: Period; label: string }) {
   const [showFilters, setShowFilters] = useState(true);
   const [hover, setHover] = useState<{ cell: Cell; left: number; top: number } | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  /* rejoni pirata — samo vizuelni overlay, default OFF */
+  const { data: regions = [] } = useRegions();
+  const [showRegions, setShowRegions] = useState(false);
+  const [regionSearch, setRegionSearch] = useState("");
+  const [selectedPirates, setSelectedPirates] = useState<string[]>([]);
+
+  const pirateOptions = useMemo(() => {
+    const byId = new Map<string, { id: string; username: string; color: string }>();
+    for (const r of regions)
+      if (!byId.has(r.pirate_user_id))
+        byId.set(r.pirate_user_id, {
+          id: r.pirate_user_id,
+          username: r.pirate_username,
+          color: r.color,
+        });
+    return Array.from(byId.values()).sort((a, b) => a.username.localeCompare(b.username));
+  }, [regions]);
+
+  const visibleRegions = useMemo(
+    () => regions.filter((r) => selectedPirates.includes(r.pirate_user_id)),
+    [regions, selectedPirates],
+  );
 
   /* kamera: viewBox nad world prostorom */
   const [zoom, setZoom] = useState(1);
@@ -478,6 +504,90 @@ function MapView({ period, label }: { period: Period; label: string }) {
         </div>
       </div>
 
+      {/* rejoni pirata */}
+      <div className="pirate-card rounded-2xl p-4 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Switch
+              id="show-regions"
+              checked={showRegions}
+              onCheckedChange={(v) => setShowRegions(!!v)}
+            />
+            <label htmlFor="show-regions" className="text-sm cursor-pointer">
+              Prikaži reone
+            </label>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              {regions.length} rejona
+            </span>
+          </div>
+          {showRegions && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedPirates(pirateOptions.map((p) => p.id))}
+              >
+                Prikaži sve
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedPirates([])}>
+                Sakrij sve
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {showRegions && (
+          <div className="mt-3">
+            {pirateOptions.length === 0 ? (
+              <div className="text-xs text-muted-foreground">
+                Nema definisanih rejona — dodaj ih na stranici „Rejoni”.
+              </div>
+            ) : (
+              <>
+                <div className="relative max-w-xs mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Traži pirata..."
+                    value={regionSearch}
+                    onChange={(e) => setRegionSearch(e.target.value)}
+                    className="pl-9 h-9"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-2 max-h-40 overflow-y-auto">
+                  {pirateOptions
+                    .filter((p) =>
+                      p.username.toLowerCase().includes(regionSearch.trim().toLowerCase()),
+                    )
+                    .map((p) => {
+                      const on = selectedPirates.includes(p.id);
+                      return (
+                        <label
+                          key={p.id}
+                          className="flex items-center gap-2 text-xs cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={on}
+                            onCheckedChange={(v) =>
+                              setSelectedPirates((prev) =>
+                                v ? [...prev, p.id] : prev.filter((id) => id !== p.id),
+                              )
+                            }
+                          />
+                          <span
+                            className="size-3 rounded-sm border"
+                            style={{ background: p.color, borderColor: p.color }}
+                          />
+                          {p.username}
+                        </label>
+                      );
+                    })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* mapa */}
       <div className="pirate-card rounded-2xl p-3">
         {isLoading ? (
@@ -531,6 +641,15 @@ function MapView({ period, label }: { period: Period; label: string }) {
                     strokeWidth={s(j % 10 === 0 ? 1.35 : j % 5 === 0 ? 1 : 0.75)}
                 />
               ))}
+
+              {/* rejoni pirata — čisti vizuelni overlay, ne prima interakciju */}
+              {showRegions && (
+                <g pointerEvents="none">
+                  {visibleRegions.map((r) => (
+                    <RegionLayer key={r.id} region={r} s={s} />
+                  ))}
+                </g>
+              )}
 
               {/* heat/glow sloj — ne prima klikove */}
               <g pointerEvents="none">
@@ -883,5 +1002,88 @@ function CellDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ------------------------------ rejon overlay ------------------------------ */
+
+/**
+ * Rejon se crta u koordinatnom prostoru mape (skalira se sa zoomom), dok labela
+ * ostaje približno konstantne screen veličine. Fill se crta po deduplikovanim
+ * poljima — isto polje definisano kroz više items nema jaču opacity.
+ */
+function RegionLayer({
+  region,
+  s,
+}: {
+  region: PirateRegion;
+  s: (screenUnits: number) => number;
+}) {
+  const cells = useMemo(() => {
+    const set = new Set<string>();
+    for (const it of region.items)
+      for (let x = it.x_start; x <= it.x_end; x++)
+        for (let y = it.y_start; y <= it.y_end; y++) set.add(`${x}:${y}`);
+    return Array.from(set).map((k) => {
+      const [x, y] = k.split(":").map(Number);
+      return { k, x, y };
+    });
+  }, [region.items]);
+
+  const label = useMemo(() => {
+    if (cells.length === 0) return null;
+    let sx = 0;
+    let sy = 0;
+    for (const c of cells) {
+      sx += c.x;
+      sy += c.y;
+    }
+    return { x: (sx / cells.length - 0.5) * CELL, y: (sy / cells.length - 0.5) * CELL };
+  }, [cells]);
+
+  return (
+    <g>
+      {cells.map((c) => (
+        <rect
+          key={`rc-${region.id}-${c.k}`}
+          x={(c.x - 1) * CELL}
+          y={(c.y - 1) * CELL}
+          width={CELL}
+          height={CELL}
+          fill={region.color}
+          fillOpacity={0.16}
+        />
+      ))}
+      {region.items.map((it) => (
+        <rect
+          key={`rb-${region.id}-${it.id}`}
+          x={(it.x_start - 1) * CELL}
+          y={(it.y_start - 1) * CELL}
+          width={(it.x_end - it.x_start + 1) * CELL}
+          height={(it.y_end - it.y_start + 1) * CELL}
+          fill="none"
+          stroke={region.color}
+          strokeOpacity={0.75}
+          strokeWidth={s(1.4)}
+        />
+      ))}
+      {label && (
+        <text
+          x={label.x}
+          y={label.y}
+          fontSize={s(11)}
+          fontWeight={700}
+          fill={region.color}
+          stroke="var(--background)"
+          strokeWidth={s(2.4)}
+          style={{ paintOrder: "stroke" }}
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          {region.pirate_username}
+          {region.name ? ` · ${region.name}` : ""}
+        </text>
+      )}
+    </g>
   );
 }

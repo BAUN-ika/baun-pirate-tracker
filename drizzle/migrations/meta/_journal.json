@@ -43,6 +43,13 @@
       "when": 1789829498371,
       "tag": "0005_extend_policies_for_pirat_role",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789830191002,
+      "tag": "0006_create_pirate_regions",
+      "breakpoints": true
     }
   ]
 }
