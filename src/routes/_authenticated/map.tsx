@@ -180,7 +180,7 @@ function MapView({ period, label }: { period: Period; label: string }) {
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [applyZoom]);
+  }, [applyZoom, isLoading, cells.length]);
 
   /* pan (drag) + pinch (dva pointera) */
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -515,8 +515,8 @@ function MapView({ period, label }: { period: Period; label: string }) {
                   x2={i * CELL}
                   y2={cam.y + view}
                   stroke="var(--border)"
-                    strokeOpacity={i % 10 === 0 ? 0.7 : i % 5 === 0 ? 0.46 : 0.3}
-                    strokeWidth={s(i % 10 === 0 ? 1.2 : i % 5 === 0 ? 0.85 : 0.65)}
+                    strokeOpacity={i % 10 === 0 ? 0.82 : i % 5 === 0 ? 0.6 : 0.42}
+                    strokeWidth={s(i % 10 === 0 ? 1.35 : i % 5 === 0 ? 1 : 0.75)}
                 />
               ))}
                {yGridLines.map((j) => (
@@ -527,8 +527,8 @@ function MapView({ period, label }: { period: Period; label: string }) {
                   x2={cam.x + view}
                   y2={j * CELL}
                   stroke="var(--border)"
-                    strokeOpacity={j % 10 === 0 ? 0.7 : j % 5 === 0 ? 0.46 : 0.3}
-                    strokeWidth={s(j % 10 === 0 ? 1.2 : j % 5 === 0 ? 0.85 : 0.65)}
+                    strokeOpacity={j % 10 === 0 ? 0.82 : j % 5 === 0 ? 0.6 : 0.42}
+                    strokeWidth={s(j % 10 === 0 ? 1.35 : j % 5 === 0 ? 1 : 0.75)}
                 />
               ))}
 
@@ -679,12 +679,25 @@ function MapView({ period, label }: { period: Period; label: string }) {
             {hover && (
               <div
                 className="pointer-events-none absolute z-20 w-64 max-h-64 overflow-hidden rounded-xl border border-gold/30 bg-popover/95 p-3 text-xs shadow-xl"
-                style={{ left: Math.max(4, hover.left + 12), top: Math.max(4, hover.top + 12) }}
+                style={{
+                  left: Math.min(
+                    Math.max(4, hover.left + 12),
+                    Math.max(4, (hostRef.current?.clientWidth ?? 264) - 260),
+                  ),
+                  top:
+                    hover.top + 268 <= (hostRef.current?.clientHeight ?? 272)
+                      ? hover.top + 12
+                      : Math.max(4, hover.top - 268),
+                }}
               >
                 <div className="font-display text-gold text-sm">{hover.cell.key}</div>
-                <div className="text-muted-foreground mb-2">
-                  {hover.cell.total.toLocaleString("bs-BA")} ukupno ·{" "}
-                  {hover.cell.players.length} igrača
+                <div className="mb-2 flex items-baseline gap-1.5">
+                  <span className="text-base font-bold tabular-nums text-foreground">
+                    {hover.cell.total.toLocaleString("bs-BA")}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    ukupno · {hover.cell.players.length} igrača
+                  </span>
                 </div>
                 <div className="space-y-1.5">
                   {hover.cell.players.slice(0, 6).map((p) => (
