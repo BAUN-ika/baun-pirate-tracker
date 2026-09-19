@@ -602,7 +602,12 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "glavni_pirat" | "korisnik"
+      app_role:
+        | "admin"
+        | "glavni_pirat"
+        | "korisnik"
+        | "pirat"
+        | "ide_na_plasman"
       mission_status: "pending" | "completed" | "cancelled"
       mission_type: "mission_8h" | "mission_16h"
     }
@@ -732,7 +737,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "glavni_pirat", "korisnik"],
+      app_role: [
+        "admin",
+        "glavni_pirat",
+        "korisnik",
+        "pirat",
+        "ide_na_plasman",
+      ],
       mission_status: ["pending", "completed", "cancelled"],
       mission_type: ["mission_8h", "mission_16h"],
     },

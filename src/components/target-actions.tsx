@@ -50,7 +50,7 @@ export function TargetActions({
   map: ReturnType<typeof useTargetStatusMap>["map"];
   actions: ReturnType<typeof useTargetActions>;
 }) {
-  const { isPirate } = useCurrentUser();
+  const { isCollector } = useCurrentUser();
   const st = statusOf(map, target.ikariam_username);
   const status = st?.status ?? "ready";
 
@@ -78,7 +78,7 @@ export function TargetActions({
           onConfirm={(name) => actions.enRoute.mutate({ target, pirate_name: name })}
         />
       )}
-      {isPirate && (
+      {isCollector && (
         <AssignDialog
           targetLabel={`${target.ikariam_username} (${target.coordinates ?? "—"})`}
           triggerLabel="Pokupi"
@@ -99,7 +99,7 @@ export function TargetActions({
           }
         />
       )}
-      {isPirate && status === "collected" && (
+      {isCollector && status === "collected" && (
         <span className="text-[10px] text-muted-foreground">
           <Coins className="size-3 inline mr-1" />
           pokupljeno

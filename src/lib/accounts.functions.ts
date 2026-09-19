@@ -156,10 +156,14 @@ export const collectPoints = createServerFn({ method: "POST" })
       .select("role")
       .eq("user_id", userId);
     const allowed = (roles ?? []).some(
-      (r) => r.role === "admin" || r.role === "glavni_pirat",
+      (r) =>
+        r.role === "admin" ||
+        r.role === "glavni_pirat" ||
+        r.role === "pirat" ||
+        r.role === "ide_na_plasman",
     );
     if (!allowed) {
-      throw new Error("Samo glavni pirat ili admin može pokupiti poene.");
+      throw new Error("Nemaš privilegiju za pokupljanje poena.");
     }
     const now = new Date().toISOString();
     const { data: prev } = await supabaseAdmin

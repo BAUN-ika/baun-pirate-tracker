@@ -283,7 +283,7 @@ function UsersTable() {
                           <SelectValue placeholder="+ Dodaj rolu" />
                         </SelectTrigger>
                         <SelectContent>
-                          {(["admin", "glavni_pirat", "korisnik"] as AppRole[])
+                          {(["admin", "glavni_pirat", "pirat", "ide_na_plasman", "korisnik"] as AppRole[])
                             .filter((r) => !u.roles.includes(r))
                             .map((r) => (
                               <SelectItem key={r} value={r}>

@@ -3,7 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AppRole = "admin" | "glavni_pirat" | "korisnik";
+export type AppRole =
+  | "admin"
+  | "glavni_pirat"
+  | "pirat"
+  | "ide_na_plasman"
+  | "korisnik";
 
 export interface CurrentUserData {
   user: User;
@@ -62,6 +67,12 @@ export function useCurrentUser() {
     isAdmin: !!query.data?.roles.includes("admin"),
     isPirate:
       !!query.data?.roles.includes("admin") ||
-      !!query.data?.roles.includes("glavni_pirat"),
+      !!query.data?.roles.includes("glavni_pirat") ||
+      !!query.data?.roles.includes("pirat"),
+    isCollector:
+      !!query.data?.roles.includes("admin") ||
+      !!query.data?.roles.includes("glavni_pirat") ||
+      !!query.data?.roles.includes("pirat") ||
+      !!query.data?.roles.includes("ide_na_plasman"),
   };
 }

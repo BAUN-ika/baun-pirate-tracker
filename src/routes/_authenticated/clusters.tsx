@@ -395,7 +395,7 @@ function ClusterCard({
   statusMap: ReturnType<typeof useTargetStatusMap>["map"];
 }) {
   const effRelation = useEffectiveRelation();
-  const { isPirate } = useCurrentUser();
+  const { isCollector } = useCurrentUser();
   const actions = useTargetActions("clusters");
   const bulk = useBulkTargetActions("clusters");
 
@@ -470,7 +470,7 @@ function ClusterCard({
               bulk.enRouteAll.mutate({ targets, pirate_name: name })
             }
           />
-          {isPirate && (
+          {isCollector && (
             <AssignDialog
               targetLabel={`Klaster ${areaLabel}`}
               triggerLabel="Pokupi (svi)"
