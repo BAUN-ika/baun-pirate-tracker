@@ -143,6 +143,29 @@ function MapView({ period, label }: { period: Period; label: string }) {
   const [hover, setHover] = useState<{ cell: Cell; left: number; top: number } | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
+  /* rejoni pirata — samo vizuelni overlay, default OFF */
+  const { data: regions = [] } = useRegions();
+  const [showRegions, setShowRegions] = useState(false);
+  const [regionSearch, setRegionSearch] = useState("");
+  const [selectedPirates, setSelectedPirates] = useState<string[]>([]);
+
+  const pirateOptions = useMemo(() => {
+    const byId = new Map<string, { id: string; username: string; color: string }>();
+    for (const r of regions)
+      if (!byId.has(r.pirate_user_id))
+        byId.set(r.pirate_user_id, {
+          id: r.pirate_user_id,
+          username: r.pirate_username,
+          color: r.color,
+        });
+    return Array.from(byId.values()).sort((a, b) => a.username.localeCompare(b.username));
+  }, [regions]);
+
+  const visibleRegions = useMemo(
+    () => regions.filter((r) => selectedPirates.includes(r.pirate_user_id)),
+    [regions, selectedPirates],
+  );
+
   /* kamera: viewBox nad world prostorom */
   const [zoom, setZoom] = useState(1);
   const [cam, setCam] = useState({ x: 0, y: 0 });
