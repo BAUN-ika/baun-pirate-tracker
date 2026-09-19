@@ -29,6 +29,13 @@
       "when": 1788509233198,
       "tag": "0003_target_status_unique_index",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789829479506,
+      "tag": "0004_add_pirat_and_plasman_roles",
+      "breakpoints": true
     }
   ]
 }
