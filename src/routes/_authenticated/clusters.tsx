@@ -20,6 +20,7 @@ import {
   AllianceBadge,
   StatusBadge,
   useEffectiveRelation,
+  type RelationType,
 } from "@/components/alliance-badge";
 import { TargetActions, TargetStatusCell } from "@/components/target-actions";
 import { useCurrentUser } from "@/hooks/use-current-user";
