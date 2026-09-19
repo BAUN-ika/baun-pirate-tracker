@@ -46,7 +46,7 @@ export const setBaunPasscode = createServerFn({ method: "POST" })
 
 const AssignSchema = z.object({
   target_user_id: z.string().uuid(),
-  role: z.enum(["admin", "glavni_pirat", "korisnik"]),
+  role: z.enum(["admin", "glavni_pirat", "pirat", "ide_na_plasman", "korisnik"]),
 });
 
 export const assignRole = createServerFn({ method: "POST" })

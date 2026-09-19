@@ -10,7 +10,27 @@ async function getRoles(supabase: any, userId: string): Promise<string[]> {
 
 async function isPirate(supabase: any, userId: string) {
   const roles = await getRoles(supabase, userId);
-  return roles.includes("admin") || roles.includes("glavni_pirat");
+  return (
+    roles.includes("admin") ||
+    roles.includes("glavni_pirat") ||
+    roles.includes("pirat")
+  );
+}
+
+/** Pirati + "ide na plasman" — smiju krenuti i pokupiti poene. */
+async function isCollector(supabase: any, userId: string) {
+  const roles = await getRoles(supabase, userId);
+  return (
+    roles.includes("admin") ||
+    roles.includes("glavni_pirat") ||
+    roles.includes("pirat") ||
+    roles.includes("ide_na_plasman")
+  );
+}
+
+async function requireCollector(supabase: any, userId: string) {
+  if (!(await isCollector(supabase, userId)))
+    throw new Error("Nemaš privilegiju za pokupljanje poena.");
 }
 
 async function requirePirate(supabase: any, userId: string) {
@@ -328,7 +348,7 @@ export const highscoreCollect = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => HsTarget.parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await requirePirate(supabase, userId);
+    await requireCollector(supabase, userId);
     const existing = await findHsStatus(supabase, data.period_start, data.ikariam_username);
     const now = new Date().toISOString();
     const patch = {
@@ -493,7 +513,7 @@ export const clusterCollect = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => ClusterTarget.parse(i))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await requirePirate(supabase, userId);
+    await requireCollector(supabase, userId);
     const existing = await findClusterStatus(
       supabase,
       data.period_start,
@@ -894,7 +914,7 @@ export const targetCollect = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await requirePirate(supabase, userId);
+    await requireCollector(supabase, userId);
     return doCollect(supabase, userId, data, await displayName(supabase, userId));
   });
 
@@ -934,7 +954,7 @@ export const targetBulkCollect = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    await requirePirate(supabase, userId);
+    await requireCollector(supabase, userId);
     const fallback = await displayName(supabase, userId);
     let total = 0;
     for (const t of data.targets) {

@@ -70,7 +70,11 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
     ? "admin"
     : data?.roles.includes("glavni_pirat")
       ? "glavni_pirat"
-      : data?.roles.includes("korisnik")
+      : data?.roles.includes("pirat")
+        ? "pirat"
+        : data?.roles.includes("ide_na_plasman")
+          ? "ide_na_plasman"
+          : data?.roles.includes("korisnik")
         ? "korisnik"
         : undefined;
 
