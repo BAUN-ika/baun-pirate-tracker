@@ -174,8 +174,9 @@ function MapView({ period, label }: { period: Period; label: string }) {
       const rect = el.getBoundingClientRect();
       const fx = (e.clientX - rect.left) / rect.width;
       const fy = (e.clientY - rect.top) / rect.height;
-      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
-      applyZoom(camRef.current.zoom * Math.exp(-dy * 0.0018), { fx, fy });
+      const rawDy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+      const dy = Math.max(-80, Math.min(80, rawDy));
+      applyZoom(camRef.current.zoom * Math.exp(-dy * 0.0009), { fx, fy });
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -238,7 +239,9 @@ function MapView({ period, label }: { period: Period; label: string }) {
     const tags = new Set<string>();
     const q = search.trim().toLowerCase();
     const min = Number(minPoints);
-    const withCoords = targets.filter((t) => t.x != null && t.y != null);
+    const withCoords = targets.filter(
+      (t) => t.x != null && t.y != null && t.current_pirate_points > 0,
+    );
     for (const t of withCoords) if (t.alliance_tag) tags.add(t.alliance_tag);
 
     const visible = withCoords.filter((t) => {
@@ -324,12 +327,14 @@ function MapView({ period, label }: { period: Period; label: string }) {
   const s = (screenUnits: number) => screenUnits / zoom;
   const labelStep = zoom >= 5.5 ? 1 : zoom >= 3.5 ? 2 : zoom >= 1.8 ? 5 : 10;
 
-  const gridLines: number[] = [];
+  const xGridLines: number[] = [];
+  const yGridLines: number[] = [];
   const startI = Math.max(1, Math.floor(cam.x / CELL) - 1);
   const endI = Math.min(100, Math.ceil((cam.x + view) / CELL) + 1);
   const startJ = Math.max(1, Math.floor(cam.y / CELL) - 1);
   const endJ = Math.min(100, Math.ceil((cam.y + view) / CELL) + 1);
-  for (let i = Math.max(0, startI - 1); i <= endI; i++) gridLines.push(i);
+  for (let i = Math.max(0, startI - 1); i <= endI; i++) xGridLines.push(i);
+  for (let j = Math.max(0, startJ - 1); j <= endJ; j++) yGridLines.push(j);
 
   const xLabels: number[] = [];
   for (let i = startI; i <= endI; i++) if (i % labelStep === 0 || i === 1) xLabels.push(i);
@@ -502,7 +507,7 @@ function MapView({ period, label }: { period: Period; label: string }) {
               style={{ background: "color-mix(in oklab, var(--background) 70%, transparent)" }}
             >
               {/* grid */}
-              {gridLines.map((i) => (
+               {xGridLines.map((i) => (
                 <line
                   key={`v${i}`}
                   x1={i * CELL}
@@ -510,11 +515,11 @@ function MapView({ period, label }: { period: Period; label: string }) {
                   x2={i * CELL}
                   y2={cam.y + view}
                   stroke="var(--border)"
-                   strokeOpacity={i % 10 === 0 ? 0.62 : i % 5 === 0 ? 0.34 : 0.16}
-                   strokeWidth={s(i % 10 === 0 ? 1.15 : i % 5 === 0 ? 0.75 : 0.45)}
+                    strokeOpacity={i % 10 === 0 ? 0.7 : i % 5 === 0 ? 0.46 : 0.3}
+                    strokeWidth={s(i % 10 === 0 ? 1.2 : i % 5 === 0 ? 0.85 : 0.65)}
                 />
               ))}
-              {gridLines.map((j) => (
+               {yGridLines.map((j) => (
                 <line
                   key={`h${j}`}
                   x1={cam.x}
@@ -522,8 +527,8 @@ function MapView({ period, label }: { period: Period; label: string }) {
                   x2={cam.x + view}
                   y2={j * CELL}
                   stroke="var(--border)"
-                   strokeOpacity={j % 10 === 0 ? 0.62 : j % 5 === 0 ? 0.34 : 0.16}
-                   strokeWidth={s(j % 10 === 0 ? 1.15 : j % 5 === 0 ? 0.75 : 0.45)}
+                    strokeOpacity={j % 10 === 0 ? 0.7 : j % 5 === 0 ? 0.46 : 0.3}
+                    strokeWidth={s(j % 10 === 0 ? 1.2 : j % 5 === 0 ? 0.85 : 0.65)}
                 />
               ))}
 
