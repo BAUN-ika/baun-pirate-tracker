@@ -1004,3 +1004,86 @@ function CellDialog({
     </Dialog>
   );
 }
+
+/* ------------------------------ rejon overlay ------------------------------ */
+
+/**
+ * Rejon se crta u koordinatnom prostoru mape (skalira se sa zoomom), dok labela
+ * ostaje približno konstantne screen veličine. Fill se crta po deduplikovanim
+ * poljima — isto polje definisano kroz više items nema jaču opacity.
+ */
+function RegionLayer({
+  region,
+  s,
+}: {
+  region: PirateRegion;
+  s: (screenUnits: number) => number;
+}) {
+  const cells = useMemo(() => {
+    const set = new Set<string>();
+    for (const it of region.items)
+      for (let x = it.x_start; x <= it.x_end; x++)
+        for (let y = it.y_start; y <= it.y_end; y++) set.add(`${x}:${y}`);
+    return Array.from(set).map((k) => {
+      const [x, y] = k.split(":").map(Number);
+      return { k, x, y };
+    });
+  }, [region.items]);
+
+  const label = useMemo(() => {
+    if (cells.length === 0) return null;
+    let sx = 0;
+    let sy = 0;
+    for (const c of cells) {
+      sx += c.x;
+      sy += c.y;
+    }
+    return { x: (sx / cells.length - 0.5) * CELL, y: (sy / cells.length - 0.5) * CELL };
+  }, [cells]);
+
+  return (
+    <g>
+      {cells.map((c) => (
+        <rect
+          key={`rc-${region.id}-${c.k}`}
+          x={(c.x - 1) * CELL}
+          y={(c.y - 1) * CELL}
+          width={CELL}
+          height={CELL}
+          fill={region.color}
+          fillOpacity={0.16}
+        />
+      ))}
+      {region.items.map((it) => (
+        <rect
+          key={`rb-${region.id}-${it.id}`}
+          x={(it.x_start - 1) * CELL}
+          y={(it.y_start - 1) * CELL}
+          width={(it.x_end - it.x_start + 1) * CELL}
+          height={(it.y_end - it.y_start + 1) * CELL}
+          fill="none"
+          stroke={region.color}
+          strokeOpacity={0.75}
+          strokeWidth={s(1.4)}
+        />
+      ))}
+      {label && (
+        <text
+          x={label.x}
+          y={label.y}
+          fontSize={s(11)}
+          fontWeight={700}
+          fill={region.color}
+          stroke="var(--background)"
+          strokeWidth={s(2.4)}
+          style={{ paintOrder: "stroke" }}
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          {region.pirate_username}
+          {region.name ? ` · ${region.name}` : ""}
+        </text>
+      )}
+    </g>
+  );
+}
