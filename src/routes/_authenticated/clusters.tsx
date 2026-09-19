@@ -7,12 +7,20 @@ import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CoordsLink } from "@/components/coords-link";
 import { AssignDialog } from "@/components/assign-dialog";
 import {
   AllianceBadge,
   StatusBadge,
   useEffectiveRelation,
+  type RelationType,
 } from "@/components/alliance-badge";
 import { TargetActions, TargetStatusCell } from "@/components/target-actions";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -188,11 +196,16 @@ function buildClusters(entries: Entry[], radius: number): Cluster[] {
   return Array.from(map.values()).sort((a, b) => b.total - a.total);
 }
 
+type RelationFilter = "all" | "other" | RelationType;
+type StatusFilter = "all" | "ready" | "en_route" | "collected";
+
 function ClustersPage() {
   const cur = getCurrentPeriod();
   const prev = getPreviousPeriod();
   const [radiusInput, setRadiusInput] = useState("3");
   const [radius, setRadius] = useState(3);
+  const [relationFilter, setRelationFilter] = useState<RelationFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   // Debounce.
   useEffect(() => {
@@ -210,8 +223,8 @@ function ClustersPage() {
         description="Pronađi gdje se nalazi najveća koncentracija piratskih poena u blizini — na osnovu koordinata iz Highscore liste. Igrači iz BAUN saveza i nalozi iz 'Piratski poeni saveza' su isključeni."
       />
 
-      <div className="pirate-card rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-3 sm:items-end">
-        <div className="flex-1">
+      <div className="pirate-card rounded-2xl p-4 mb-4 grid gap-3 sm:grid-cols-3 sm:items-start">
+        <div>
           <Label htmlFor="radius" className="text-xs uppercase tracking-widest text-muted-foreground">
             Radius koordinata (±)
           </Label>
@@ -222,10 +235,57 @@ function ClustersPage() {
             max={99}
             value={radiusInput}
             onChange={(e) => setRadiusInput(e.target.value)}
-            className="mt-1 sm:w-40"
+            className="mt-1"
           />
           <div className="text-[11px] text-muted-foreground mt-1">
             Dva igrača su u istom klasteru ako su i x i y razlika ≤ radius.
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+            Odnos
+          </Label>
+          <Select
+            value={relationFilter}
+            onValueChange={(v) => setRelationFilter(v as RelationFilter)}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Svi</SelectItem>
+              <SelectItem value="other">Napadive mete / Other</SelectItem>
+              <SelectItem value="our_alliance">Naš savez</SelectItem>
+              <SelectItem value="deal">Deal / Dogovor</SelectItem>
+              <SelectItem value="protected">Protected / Ne dirati</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="text-[11px] text-muted-foreground mt-1">
+            Koristi konačni odnos (igrač ima prioritet nad savezom).
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-xs uppercase tracking-widest text-muted-foreground">
+            Status
+          </Label>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+          >
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Svi</SelectItem>
+              <SelectItem value="ready">Ready</SelectItem>
+              <SelectItem value="en_route">En Route</SelectItem>
+              <SelectItem value="collected">Collected</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="text-[11px] text-muted-foreground mt-1">
+            Globalni status mete — isti kao na ostalim stranicama.
           </div>
         </div>
       </div>
@@ -236,10 +296,22 @@ function ClustersPage() {
           <TabsTrigger value="previous">Prethodna lista</TabsTrigger>
         </TabsList>
         <TabsContent value="current">
-          <ClusterList period={cur} radius={radius} label="Trenutni period" />
+          <ClusterList
+            period={cur}
+            radius={radius}
+            label="Trenutni period"
+            relationFilter={relationFilter}
+            statusFilter={statusFilter}
+          />
         </TabsContent>
         <TabsContent value="previous">
-          <ClusterList period={prev} radius={radius} label="Prethodni period" />
+          <ClusterList
+            period={prev}
+            radius={radius}
+            label="Prethodni period"
+            relationFilter={relationFilter}
+            statusFilter={statusFilter}
+          />
         </TabsContent>
       </Tabs>
     </div>
@@ -250,22 +322,39 @@ function ClusterList({
   period,
   radius,
   label,
+  relationFilter,
+  statusFilter,
 }: {
   period: Period;
   radius: number;
   label: string;
+  relationFilter: RelationFilter;
+  statusFilter: StatusFilter;
 }) {
   const { data, isLoading } = useClusterData(period);
   const { map: statusMap } = useTargetStatusMap();
+  const effRelation = useEffectiveRelation();
 
-  // Pokupljene mete imaju 0 poena svuda — izlaze iz računa klastera.
-  const active = useMemo(
-    () =>
-      (data ?? []).filter(
-        (e) => effectivePoints(statusMap, e.ikariam_username, e.pirate_points) > 0,
-      ),
-    [data, statusMap],
-  );
+  // Dataset se filtrira PRIJE računanja klastera.
+  const active = useMemo(() => {
+    return (data ?? []).filter((e) => {
+      const st = statusOf(statusMap, e.ikariam_username)?.status ?? "ready";
+      if (statusFilter !== "all" && st !== statusFilter) return false;
+      // Pokupljene mete imaju 0 poena svuda — izlaze iz računa klastera,
+      // osim kada korisnik eksplicitno traži Collected.
+      if (statusFilter !== "collected") {
+        if (effectivePoints(statusMap, e.ikariam_username, e.pirate_points) <= 0)
+          return false;
+      }
+      if (relationFilter !== "all") {
+        const rel = effRelation(e.ikariam_username, e.alliance_tag).relation;
+        if (relationFilter === "other") {
+          if (rel !== null) return false;
+        } else if (rel !== relationFilter) return false;
+      }
+      return true;
+    });
+  }, [data, statusMap, effRelation, relationFilter, statusFilter]);
 
   const clusters = useMemo(() => buildClusters(active, radius), [active, radius]);
 
