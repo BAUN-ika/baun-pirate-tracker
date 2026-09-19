@@ -94,7 +94,7 @@ const relKeyOf = (t: CurrentPirateTarget): RelKey => t.effective_relation ?? "ot
 const CELL = 10;
 const WORLD = 100 * CELL;
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 5;
+const MAX_ZOOM = 7;
 
 const wx = (x: number) => (x - 0.5) * CELL;
 const wy = (y: number) => (y - 0.5) * CELL;
@@ -322,16 +322,14 @@ function MapView({ period, label }: { period: Period; label: string }) {
 
   /* screen-space veličine: world = screen / zoom */
   const s = (screenUnits: number) => screenUnits / zoom;
-  const gridStep = zoom >= 4 ? 1 : zoom >= 2 ? 5 : 10;
-  const labelStep = zoom >= 4.5 ? 1 : zoom >= 3 ? 2 : zoom >= 1.6 ? 5 : 10;
+  const labelStep = zoom >= 5.5 ? 1 : zoom >= 3.5 ? 2 : zoom >= 1.8 ? 5 : 10;
 
   const gridLines: number[] = [];
   const startI = Math.max(1, Math.floor(cam.x / CELL) - 1);
   const endI = Math.min(100, Math.ceil((cam.x + view) / CELL) + 1);
   const startJ = Math.max(1, Math.floor(cam.y / CELL) - 1);
   const endJ = Math.min(100, Math.ceil((cam.y + view) / CELL) + 1);
-  for (let i = Math.max(0, startI - 1); i <= endI; i++)
-    if (i % gridStep === 0 || gridStep === 1) gridLines.push(i);
+  for (let i = Math.max(0, startI - 1); i <= endI; i++) gridLines.push(i);
 
   const xLabels: number[] = [];
   for (let i = startI; i <= endI; i++) if (i % labelStep === 0 || i === 1) xLabels.push(i);
@@ -512,8 +510,8 @@ function MapView({ period, label }: { period: Period; label: string }) {
                   x2={i * CELL}
                   y2={cam.y + view}
                   stroke="var(--border)"
-                  strokeOpacity={i % 10 === 0 ? 0.6 : gridStep === 1 ? 0.18 : 0.32}
-                  strokeWidth={s(i % 10 === 0 ? 1 : 0.5)}
+                   strokeOpacity={i % 10 === 0 ? 0.62 : i % 5 === 0 ? 0.34 : 0.16}
+                   strokeWidth={s(i % 10 === 0 ? 1.15 : i % 5 === 0 ? 0.75 : 0.45)}
                 />
               ))}
               {gridLines.map((j) => (
@@ -524,8 +522,8 @@ function MapView({ period, label }: { period: Period; label: string }) {
                   x2={cam.x + view}
                   y2={j * CELL}
                   stroke="var(--border)"
-                  strokeOpacity={j % 10 === 0 ? 0.6 : gridStep === 1 ? 0.18 : 0.32}
-                  strokeWidth={s(j % 10 === 0 ? 1 : 0.5)}
+                   strokeOpacity={j % 10 === 0 ? 0.62 : j % 5 === 0 ? 0.34 : 0.16}
+                   strokeWidth={s(j % 10 === 0 ? 1.15 : j % 5 === 0 ? 0.75 : 0.45)}
                 />
               ))}
 
@@ -547,17 +545,20 @@ function MapView({ period, label }: { period: Period; label: string }) {
                 })}
               </g>
 
-              {/* markeri — umjereno rastu unutar sve većeg polja */}
+              {/* markeri — poeni i broj igrača određuju veličinu; jaki hotspotovi smiju preći polje */}
               {cells.map((c) => {
                 const t = intensity(c.total);
                 const color = REL_COLOR[c.dominant];
                 const multi = c.players.length > 1;
-                const zoomFill = ((zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM)) * CELL * 0.24;
+                const playerWeight = Math.min(1, Math.log2(c.players.length) / 3);
+                const zoomProgress = (zoom - MIN_ZOOM) / (MAX_ZOOM - MIN_ZOOM);
+                const screenRadius = 3 + t * 5 + playerWeight * 3;
+                const fieldRadius = 2.4 + t * 6.1 + playerWeight * 3.4;
                 const r = Math.min(
-                  CELL * 0.38,
-                  s(3.5 + t * 4 + (multi ? 1.5 : 0)) + zoomFill,
+                  CELL * 1.2,
+                  s(screenRadius) * (1 - zoomProgress) + fieldRadius * zoomProgress,
                 );
-                const hitRadius = Math.min(CELL / 2, r + s(3));
+                const hitRadius = Math.max(r, s(7));
                 const faded = c.collected === c.players.length;
                 const onEnter = (ev: React.MouseEvent) => {
                   const box = hostRef.current?.getBoundingClientRect();
@@ -605,13 +606,16 @@ function MapView({ period, label }: { period: Period; label: string }) {
                           strokeWidth={s(0.8)}
                         />
                         <text
-                          x={wx(c.x) + r + s(3)}
-                          y={wy(c.y) - r - s(1)}
-                          fontSize={s(7)}
+                          x={wx(c.x) + r + s(5.5)}
+                          y={wy(c.y) - r - s(3)}
+                          fontSize={s(10)}
                           fill="var(--foreground)"
+                          fontWeight={800}
+                          textAnchor="middle"
+                          dominantBaseline="central"
                           style={{ paintOrder: "stroke" }}
                           stroke="var(--background)"
-                          strokeWidth={s(1.6)}
+                          strokeWidth={s(2.5)}
                         >
                           {c.players.length}
                         </text>
@@ -638,8 +642,12 @@ function MapView({ period, label }: { period: Period; label: string }) {
                     key={`xl${i}`}
                     x={wx(i)}
                     y={cam.y + s(12)}
-                    fontSize={s(9)}
-                    fill="var(--muted-foreground)"
+                    fontSize={s(11)}
+                    fontWeight={700}
+                    fill="var(--foreground)"
+                    stroke="var(--background)"
+                    strokeWidth={s(2.2)}
+                    style={{ paintOrder: "stroke" }}
                     textAnchor="middle"
                   >
                     {i}
@@ -650,8 +658,12 @@ function MapView({ period, label }: { period: Period; label: string }) {
                     key={`yl${j}`}
                     x={cam.x + s(4)}
                     y={wy(j) + s(3)}
-                    fontSize={s(9)}
-                    fill="var(--muted-foreground)"
+                    fontSize={s(11)}
+                    fontWeight={700}
+                    fill="var(--foreground)"
+                    stroke="var(--background)"
+                    strokeWidth={s(2.2)}
+                    style={{ paintOrder: "stroke" }}
                   >
                     {j}
                   </text>
