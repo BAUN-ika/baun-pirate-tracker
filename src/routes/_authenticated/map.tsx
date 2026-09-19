@@ -180,7 +180,7 @@ function MapView({ period, label }: { period: Period; label: string }) {
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [applyZoom, isLoading, cells.length]);
+  });
 
   /* pan (drag) + pinch (dva pointera) */
   const drag = useRef<{ id: number; x: number; y: number } | null>(null);
