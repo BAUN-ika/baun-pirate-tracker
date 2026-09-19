@@ -35,6 +35,9 @@ import {
   type CurrentPirateTarget,
 } from "@/hooks/use-current-targets";
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
+import { useRegions, type PirateRegion } from "@/hooks/use-regions";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_authenticated/map")({
   component: PirateMapPage,

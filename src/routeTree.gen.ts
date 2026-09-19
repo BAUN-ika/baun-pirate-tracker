@@ -13,6 +13,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRegionsRouteImport } from './routes/_authenticated/regions'
 import { Route as AuthenticatedPointsRouteImport } from './routes/_authenticated/points'
 import { Route as AuthenticatedPirateScannerRouteImport } from './routes/_authenticated/pirate-scanner'
 import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
@@ -44,6 +45,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRegionsRoute = AuthenticatedRegionsRouteImport.update({
+  id: '/regions',
+  path: '/regions',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedPointsRoute = AuthenticatedPointsRouteImport.update({
   id: '/points',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/performance': typeof AuthenticatedPerformanceRoute
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
+  '/regions': typeof AuthenticatedRegionsRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
   '/highscore/': typeof AuthenticatedHighscoreIndexRoute
 }
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/performance': typeof AuthenticatedPerformanceRoute
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
+  '/regions': typeof AuthenticatedRegionsRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
   '/highscore': typeof AuthenticatedHighscoreIndexRoute
 }
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/_authenticated/performance': typeof AuthenticatedPerformanceRoute
   '/_authenticated/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/_authenticated/points': typeof AuthenticatedPointsRoute
+  '/_authenticated/regions': typeof AuthenticatedRegionsRoute
   '/_authenticated/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
   '/_authenticated/highscore/': typeof AuthenticatedHighscoreIndexRoute
 }
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/performance'
     | '/pirate-scanner'
     | '/points'
+    | '/regions'
     | '/highscore/submit'
     | '/highscore/'
   fileRoutesByTo: FileRoutesByTo
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/performance'
     | '/pirate-scanner'
     | '/points'
+    | '/regions'
     | '/highscore/submit'
     | '/highscore'
   id:
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/_authenticated/performance'
     | '/_authenticated/pirate-scanner'
     | '/_authenticated/points'
+    | '/_authenticated/regions'
     | '/_authenticated/highscore/submit'
     | '/_authenticated/highscore/'
   fileRoutesById: FileRoutesById
@@ -254,6 +266,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/regions': {
+      id: '/_authenticated/regions'
+      path: '/regions'
+      fullPath: '/regions'
+      preLoaderRoute: typeof AuthenticatedRegionsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/points': {
       id: '/_authenticated/points'
@@ -353,6 +372,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPerformanceRoute: typeof AuthenticatedPerformanceRoute
   AuthenticatedPirateScannerRoute: typeof AuthenticatedPirateScannerRoute
   AuthenticatedPointsRoute: typeof AuthenticatedPointsRoute
+  AuthenticatedRegionsRoute: typeof AuthenticatedRegionsRoute
   AuthenticatedHighscoreSubmitRoute: typeof AuthenticatedHighscoreSubmitRoute
   AuthenticatedHighscoreIndexRoute: typeof AuthenticatedHighscoreIndexRoute
 }
@@ -368,6 +388,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPerformanceRoute: AuthenticatedPerformanceRoute,
   AuthenticatedPirateScannerRoute: AuthenticatedPirateScannerRoute,
   AuthenticatedPointsRoute: AuthenticatedPointsRoute,
+  AuthenticatedRegionsRoute: AuthenticatedRegionsRoute,
   AuthenticatedHighscoreSubmitRoute: AuthenticatedHighscoreSubmitRoute,
   AuthenticatedHighscoreIndexRoute: AuthenticatedHighscoreIndexRoute,
 }
