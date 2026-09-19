@@ -504,6 +504,90 @@ function MapView({ period, label }: { period: Period; label: string }) {
         </div>
       </div>
 
+      {/* rejoni pirata */}
+      <div className="pirate-card rounded-2xl p-4 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Switch
+              id="show-regions"
+              checked={showRegions}
+              onCheckedChange={(v) => setShowRegions(!!v)}
+            />
+            <label htmlFor="show-regions" className="text-sm cursor-pointer">
+              Prikaži reone
+            </label>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              {regions.length} rejona
+            </span>
+          </div>
+          {showRegions && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedPirates(pirateOptions.map((p) => p.id))}
+              >
+                Prikaži sve
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedPirates([])}>
+                Sakrij sve
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {showRegions && (
+          <div className="mt-3">
+            {pirateOptions.length === 0 ? (
+              <div className="text-xs text-muted-foreground">
+                Nema definisanih rejona — dodaj ih na stranici „Rejoni”.
+              </div>
+            ) : (
+              <>
+                <div className="relative max-w-xs mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Traži pirata..."
+                    value={regionSearch}
+                    onChange={(e) => setRegionSearch(e.target.value)}
+                    className="pl-9 h-9"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-2 max-h-40 overflow-y-auto">
+                  {pirateOptions
+                    .filter((p) =>
+                      p.username.toLowerCase().includes(regionSearch.trim().toLowerCase()),
+                    )
+                    .map((p) => {
+                      const on = selectedPirates.includes(p.id);
+                      return (
+                        <label
+                          key={p.id}
+                          className="flex items-center gap-2 text-xs cursor-pointer"
+                        >
+                          <Checkbox
+                            checked={on}
+                            onCheckedChange={(v) =>
+                              setSelectedPirates((prev) =>
+                                v ? [...prev, p.id] : prev.filter((id) => id !== p.id),
+                              )
+                            }
+                          />
+                          <span
+                            className="size-3 rounded-sm border"
+                            style={{ background: p.color, borderColor: p.color }}
+                          />
+                          {p.username}
+                        </label>
+                      );
+                    })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* mapa */}
       <div className="pirate-card rounded-2xl p-3">
         {isLoading ? (
@@ -557,6 +641,15 @@ function MapView({ period, label }: { period: Period; label: string }) {
                     strokeWidth={s(j % 10 === 0 ? 1.35 : j % 5 === 0 ? 1 : 0.75)}
                 />
               ))}
+
+              {/* rejoni pirata — čisti vizuelni overlay, ne prima interakciju */}
+              {showRegions && (
+                <g pointerEvents="none">
+                  {visibleRegions.map((r) => (
+                    <RegionLayer key={r.id} region={r} s={s} />
+                  ))}
+                </g>
+              )}
 
               {/* heat/glow sloj — ne prima klikove */}
               <g pointerEvents="none">
