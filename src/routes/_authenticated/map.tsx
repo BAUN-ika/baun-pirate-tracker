@@ -862,6 +862,20 @@ function MapView({ period, label }: { period: Period; label: string }) {
                     </div>
                   )}
                 </div>
+                {(regionPlayersByCell.get(hover.cell.key) ?? []).map((r) => (
+                  <div
+                    key={r.region.id}
+                    className="mt-2 border-t border-border pt-1.5 text-[10px]"
+                  >
+                    <div style={{ color: r.region.color }} className="font-medium">
+                      Rejon: {r.region.pirate_username}
+                      {r.region.name ? ` · ${r.region.name}` : ""}
+                    </div>
+                    <div className="text-muted-foreground">
+                      Dodijeljeni igrači: {r.names.join(", ")}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
