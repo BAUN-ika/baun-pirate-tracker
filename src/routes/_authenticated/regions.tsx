@@ -124,6 +124,8 @@ function RegionsPage() {
         description="Geografski rejoni — skup Ikariam koordinata i opsega ostrva za koje je pirat zadužen. Rejoni su trajna konfiguracija i ne resetuju se sa pirate round-om ni dnevnim periodima."
       />
 
+      <AssignmentsSection canManage={canManage} />
+
       <div className="pirate-card rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
