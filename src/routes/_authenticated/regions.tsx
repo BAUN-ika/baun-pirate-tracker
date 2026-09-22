@@ -41,6 +41,7 @@ import {
   type RegionItem,
 } from "@/hooks/use-regions";
 import { saveRegion, deleteRegion } from "@/lib/regions.functions";
+import { AssignmentsSection } from "@/components/assignments-import";
 
 export const Route = createFileRoute("/_authenticated/regions")({
   component: RegionsPage,
