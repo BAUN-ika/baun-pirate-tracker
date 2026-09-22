@@ -423,6 +423,42 @@ export type Database = {
           },
         ]
       }
+      pirate_player_assignments: {
+        Row: {
+          coordinates: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          ikariam_username: string
+          pirate_user_id: string
+          source: string
+          updated_at: string
+          username_key: string
+        }
+        Insert: {
+          coordinates?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ikariam_username: string
+          pirate_user_id: string
+          source?: string
+          updated_at?: string
+          username_key: string
+        }
+        Update: {
+          coordinates?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ikariam_username?: string
+          pirate_user_id?: string
+          source?: string
+          updated_at?: string
+          username_key?: string
+        }
+        Relationships: []
+      }
       pirate_region_items: {
         Row: {
           created_at: string
