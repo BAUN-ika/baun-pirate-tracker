@@ -166,6 +166,25 @@ function MapView({ period, label }: { period: Period; label: string }) {
     [regions, selectedPirates],
   );
 
+  /* dodijeljeni igrači po koordinati iz vidljivih rejona (samo prikaz) */
+  const regionPlayersByCell = useMemo(() => {
+    const map = new Map<string, { region: PirateRegion; names: string[] }[]>();
+    if (!showRegions) return map;
+    for (const r of visibleRegions) {
+      const byCell = new Map<string, string[]>();
+      for (const p of r.players) {
+        const k = `${p.x}:${p.y}`;
+        byCell.set(k, [...(byCell.get(k) ?? []), p.ikariam_username]);
+      }
+      for (const [k, names] of byCell) {
+        const list = map.get(k) ?? [];
+        list.push({ region: r, names: names.sort((a, b) => a.localeCompare(b)) });
+        map.set(k, list);
+      }
+    }
+    return map;
+  }, [visibleRegions, showRegions]);
+
   /* kamera: viewBox nad world prostorom */
   const [zoom, setZoom] = useState(1);
   const [cam, setCam] = useState({ x: 0, y: 0 });
