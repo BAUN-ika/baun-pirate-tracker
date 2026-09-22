@@ -1100,6 +1100,36 @@ function RegionLayer({
           strokeWidth={s(1.4)}
         />
       ))}
+      {/* koordinate na kojima pirat ima konkretno dodijeljene igrače */}
+      {Array.from(
+        region.players
+          .reduce((m, p) => {
+            const k = `${p.x}:${p.y}`;
+            m.set(k, (m.get(k) ?? 0) + 1);
+            return m;
+          }, new Map<string, number>())
+          .entries(),
+      ).map(([k, count]) => {
+        const [x, y] = k.split(":").map(Number);
+        const cx = (x - 1) * CELL + CELL * 0.78;
+        const cy = (y - 1) * CELL + CELL * 0.22;
+        return (
+          <g key={`rp-${region.id}-${k}`}>
+            <circle cx={cx} cy={cy} r={s(6)} fill={region.color} fillOpacity={0.95} />
+            <text
+              x={cx}
+              y={cy}
+              fontSize={s(7.5)}
+              fontWeight={700}
+              fill="var(--background)"
+              textAnchor="middle"
+              dominantBaseline="central"
+            >
+              {count}
+            </text>
+          </g>
+        );
+      })}
       {label && (
         <text
           x={label.x}
