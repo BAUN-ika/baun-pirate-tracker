@@ -5,11 +5,13 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   ChevronDown,
   ChevronRight,
+  FileSpreadsheet,
   MapPinned,
   Pencil,
   Plus,
   Search,
   Trash2,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
@@ -34,6 +36,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   REGION_PALETTE,
   regionCells,
+  regionCoordRows,
   suggestColor,
   useRegions,
   usePirateCandidates,
@@ -41,7 +44,7 @@ import {
   type RegionItem,
 } from "@/hooks/use-regions";
 import { saveRegion, deleteRegion } from "@/lib/regions.functions";
-import { AssignmentsSection } from "@/components/assignments-import";
+import { RegionImportDialog } from "@/components/assignments-import";
 
 export const Route = createFileRoute("/_authenticated/regions")({
   component: RegionsPage,
@@ -51,12 +54,13 @@ export const Route = createFileRoute("/_authenticated/regions")({
       {
         name: "description",
         content:
-          "Definisanje i pregled geografskih rejona pirata — koordinate i opsezi ostrva za koje je pirat zadužen.",
+          "Definisanje i pregled geografskih rejona pirata — koordinate, opsezi ostrva i igrači koje pirat kupi na svakoj koordinati.",
       },
       { property: "og:title", content: "Rejoni pirata · BAUN Pirate Tracker" },
       {
         property: "og:description",
-        content: "Rejoni pirata na 100x100 Ikariam mapi — pojedinačne koordinate i opsezi.",
+        content:
+          "Rejoni pirata na 100x100 Ikariam mapi — koordinate, opsezi i dodijeljeni igrači.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -65,6 +69,7 @@ export const Route = createFileRoute("/_authenticated/regions")({
 });
 
 type DraftItem = Omit<RegionItem, "id">;
+type DraftPlayer = { x: number; y: number; ikariam_username: string };
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "admin",
@@ -86,6 +91,7 @@ function RegionsPage() {
 
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editing, setEditing] = useState<PirateRegion | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -100,15 +106,28 @@ function RegionsPage() {
     onError: (e: any) => toast.error("Greška", { description: e?.message }),
   });
 
+  /* search: pirat, naziv rejona, koordinate, username igrača */
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return regions;
-    return regions.filter(
-      (r) =>
-        r.pirate_username.toLowerCase().includes(q) ||
-        (r.name ?? "").toLowerCase().includes(q),
-    );
+    return regions.filter((r) => {
+      if (r.pirate_username.toLowerCase().includes(q)) return true;
+      if ((r.name ?? "").toLowerCase().includes(q)) return true;
+      if (r.players.some((p) => p.ikariam_username.toLowerCase().includes(q))) return true;
+      if (regionCells(r).some((c) => c.includes(q))) return true;
+      if (
+        r.rectangles.some((i) =>
+          `x ${i.x_start}-${i.x_end} y ${i.y_start}-${i.y_end}`.includes(q),
+        )
+      )
+        return true;
+      return false;
+    });
   }, [regions, search]);
+
+  /* rezultati pretrage se automatski proširuju */
+  const searchActive = search.trim().length > 0;
+  const isExpanded = (id: string) => searchActive || expanded.has(id);
 
   const toggle = (id: string) =>
     setExpanded((prev) => {
@@ -121,31 +140,35 @@ function RegionsPage() {
     <div>
       <PageHeader
         title="Rejoni pirata"
-        description="Geografski rejoni — skup Ikariam koordinata i opsega ostrva za koje je pirat zadužen. Rejoni su trajna konfiguracija i ne resetuju se sa pirate round-om ni dnevnim periodima."
+        description="Rejon = pirat + koordinate/opsezi + igrači koje pirat kupi na tim koordinatama. Ručni unos i Excel import upisuju iste podatke. Rejoni su trajna konfiguracija i ne resetuju se sa pirate round-om ni dnevnim periodima."
       />
-
-      <AssignmentsSection canManage={canManage} />
 
       <div className="pirate-card rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
-            placeholder="Traži pirata ili naziv rejona..."
+            placeholder="Traži pirata, naziv rejona, koordinatu ili igrača..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
         {canManage && (
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setOpen(true);
-            }}
-          >
-            <Plus className="size-4 mr-2" />
-            Dodaj rejon
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <FileSpreadsheet className="size-4 mr-2" />
+              Importuj Excel
+            </Button>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setOpen(true);
+              }}
+            >
+              <Plus className="size-4 mr-2" />
+              Dodaj rejon
+            </Button>
+          </div>
         )}
       </div>
 
@@ -155,12 +178,13 @@ function RegionsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="pirate-card rounded-2xl p-10 text-center text-sm text-muted-foreground">
-          Još nema definisanih rejona.
+          {searchActive ? "Nema rezultata za pretragu." : "Još nema definisanih rejona."}
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => {
-            const isOpen = expanded.has(r.id);
+            const isOpen = isExpanded(r.id);
+            const coordRows = regionCoordRows(r);
             return (
               <div key={r.id} className="pirate-card rounded-2xl p-4">
                 <div className="flex flex-wrap items-center gap-3">
@@ -182,14 +206,12 @@ function RegionsPage() {
                       <span className="text-[10px] uppercase tracking-widest text-muted-foreground ml-2">
                         {rankOf(r.pirate_roles)}
                       </span>
-                      <div className="text-xs text-muted-foreground">
-                        {r.name || "Bez naziva"}
-                      </div>
+                      <div className="text-xs text-muted-foreground">{r.name || "Bez naziva"}</div>
                     </span>
                   </button>
                   <div className="text-xs text-muted-foreground tabular-nums">
                     {r.points.length} koordinata · {r.rectangles.length} opsega ·{" "}
-                    {regionCells(r).length} polja
+                    {regionCells(r).length} polja · {r.players.length} igrača
                   </div>
                   {canManage && (
                     <div className="flex gap-2">
@@ -222,19 +244,43 @@ function RegionsPage() {
                   <div className="mt-3 grid gap-4 sm:grid-cols-2 border-t border-border pt-3">
                     <div>
                       <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
-                        Pojedinačne koordinate
+                        Koordinate i igrači
                       </div>
-                      {r.points.length === 0 ? (
+                      {coordRows.length === 0 ? (
                         <div className="text-xs text-muted-foreground">—</div>
                       ) : (
-                        <div className="flex flex-wrap gap-1.5">
-                          {r.points.map((p) => (
-                            <span
-                              key={p.id}
-                              className="rounded-md border border-border px-2 py-0.5 text-xs tabular-nums"
+                        <div className="space-y-1.5">
+                          {coordRows.map((c) => (
+                            <div
+                              key={c.key}
+                              className="rounded-lg border border-border px-2.5 py-1.5"
                             >
-                              {p.x_start}:{p.y_start}
-                            </span>
+                              <div className="flex items-center gap-2 text-sm tabular-nums">
+                                <span className="font-medium">{c.key}</span>
+                                {c.players.length > 0 && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                                    <Users className="size-3" />
+                                    {c.players.length}
+                                  </span>
+                                )}
+                              </div>
+                              {c.players.length === 0 ? (
+                                <div className="text-[11px] text-muted-foreground">
+                                  Nema dodijeljenih igrača
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {c.players.map((p) => (
+                                    <span
+                                      key={p.id}
+                                      className="rounded-md bg-muted/40 px-1.5 py-0.5 text-[11px]"
+                                    >
+                                      {p.ikariam_username}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           ))}
                         </div>
                       )}
@@ -257,9 +303,17 @@ function RegionsPage() {
                           ))}
                         </div>
                       )}
-                    </div>
-                    <div className="sm:col-span-2">
-                      <MiniPreview items={r.items} color={r.color} />
+                      <div className="mt-3">
+                        <MiniPreview
+                          items={r.items}
+                          color={r.color}
+                          players={r.players.map((p) => ({
+                            x: p.x,
+                            y: p.y,
+                            ikariam_username: p.ikariam_username,
+                          }))}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -270,12 +324,14 @@ function RegionsPage() {
       )}
 
       {canManage && (
-        <RegionDialog
-          open={open}
-          onOpenChange={setOpen}
-          region={editing}
-          regions={regions}
-        />
+        <>
+          <RegionDialog open={open} onOpenChange={setOpen} region={editing} regions={regions} />
+          <RegionImportDialog
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            regions={regions}
+          />
+        </>
       )}
     </div>
   );
@@ -283,7 +339,20 @@ function RegionsPage() {
 
 /* ------------------------------ mini 100x100 preview ------------------------------ */
 
-function MiniPreview({ items, color }: { items: DraftItem[] | RegionItem[]; color: string }) {
+function MiniPreview({
+  items,
+  color,
+  players = [],
+}: {
+  items: DraftItem[] | RegionItem[];
+  color: string;
+  players?: DraftPlayer[];
+}) {
+  const byCell = new Map<string, string[]>();
+  for (const p of players) {
+    const k = `${p.x}:${p.y}`;
+    byCell.set(k, [...(byCell.get(k) ?? []), p.ikariam_username]);
+  }
   return (
     <div>
       <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5">
@@ -313,6 +382,36 @@ function MiniPreview({ items, color }: { items: DraftItem[] | RegionItem[]; colo
             strokeWidth={0.35}
           />
         ))}
+        {/* koordinate sa dodijeljenim igračima — jači marker + broj igrača */}
+        {Array.from(byCell.entries()).map(([k, names]) => {
+          const [x, y] = k.split(":").map(Number);
+          return (
+            <g key={k}>
+              <title>{`${k}\n${names.length} igrač${names.length === 1 ? "" : "a"}: ${names.join(", ")}`}</title>
+              <rect
+                x={x - 1}
+                y={y - 1}
+                width={1}
+                height={1}
+                fill={color}
+                fillOpacity={0.95}
+                stroke="var(--foreground)"
+                strokeOpacity={0.6}
+                strokeWidth={0.2}
+              />
+              <text
+                x={x - 0.5}
+                y={y - 0.15}
+                textAnchor="middle"
+                fontSize={0.9}
+                fill="var(--background)"
+                fontWeight={700}
+              >
+                {names.length}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
@@ -335,23 +434,28 @@ function RegionDialog({
   const qc = useQueryClient();
   const saveFn = useServerFn(saveRegion);
 
-  const [pirateId, setPirateId] = useState(region?.pirate_user_id ?? "");
-  const [name, setName] = useState(region?.name ?? "");
-  const [color, setColor] = useState(region?.color ?? REGION_PALETTE[0]);
-  const [items, setItems] = useState<DraftItem[]>(
-    region?.items.map(({ item_type, x_start, x_end, y_start, y_end }) => ({
+  const draftItems = (r: PirateRegion | null): DraftItem[] =>
+    r?.items.map(({ item_type, x_start, x_end, y_start, y_end }) => ({
       item_type,
       x_start,
       x_end,
       y_start,
       y_end,
-    })) ?? [],
-  );
+    })) ?? [];
+  const draftPlayers = (r: PirateRegion | null): DraftPlayer[] =>
+    r?.players.map((p) => ({ x: p.x, y: p.y, ikariam_username: p.ikariam_username })) ?? [];
+
+  const [pirateId, setPirateId] = useState(region?.pirate_user_id ?? "");
+  const [name, setName] = useState(region?.name ?? "");
+  const [color, setColor] = useState(region?.color ?? REGION_PALETTE[0]);
+  const [items, setItems] = useState<DraftItem[]>(draftItems(region));
+  const [players, setPlayers] = useState<DraftPlayer[]>(draftPlayers(region));
   const [coordInput, setCoordInput] = useState("");
   const [rx1, setRx1] = useState("");
   const [rx2, setRx2] = useState("");
   const [ry1, setRy1] = useState("");
   const [ry2, setRy2] = useState("");
+  const [playerDrafts, setPlayerDrafts] = useState<Record<string, string>>({});
   const [key, setKey] = useState(region?.id ?? "new");
 
   /* reset stanja kada se otvori drugi rejon */
@@ -361,20 +465,14 @@ function RegionDialog({
     setPirateId(region?.pirate_user_id ?? "");
     setName(region?.name ?? "");
     setColor(region?.color ?? REGION_PALETTE[0]);
-    setItems(
-      region?.items.map(({ item_type, x_start, x_end, y_start, y_end }) => ({
-        item_type,
-        x_start,
-        x_end,
-        y_start,
-        y_end,
-      })) ?? [],
-    );
+    setItems(draftItems(region));
+    setPlayers(draftPlayers(region));
     setCoordInput("");
     setRx1("");
     setRx2("");
     setRy1("");
     setRy2("");
+    setPlayerDrafts({});
   }
 
   const save = useMutation({
@@ -386,6 +484,7 @@ function RegionDialog({
           name: name.trim() || null,
           color,
           items,
+          players,
         },
       }),
     onSuccess: () => {
@@ -405,10 +504,7 @@ function RegionDialog({
     const y = Number(m[2]);
     if (!valid(x) || !valid(y)) return toast.error("Koordinate moraju biti između 1 i 100.");
     setItems((prev) =>
-      prev.some(
-        (i) =>
-          i.item_type === "point" && i.x_start === x && i.y_start === y,
-      )
+      prev.some((i) => i.item_type === "point" && i.x_start === x && i.y_start === y)
         ? prev
         : [...prev, { item_type: "point", x_start: x, x_end: x, y_start: y, y_end: y }],
     );
@@ -438,7 +534,41 @@ function RegionDialog({
 
   const removeItem = (idx: number) => setItems((prev) => prev.filter((_, i) => i !== idx));
 
-  const points = items.map((i, idx) => ({ i, idx })).filter((r) => r.i.item_type === "point");
+  /* koordinate forme = pojedinačne koordinate + koordinate koje imaju igrače */
+  const coordKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of items) if (i.item_type === "point") set.add(`${i.x_start}:${i.y_start}`);
+    for (const p of players) set.add(`${p.x}:${p.y}`);
+    return Array.from(set).sort((a, b) => {
+      const [ax, ay] = a.split(":").map(Number);
+      const [bx, by] = b.split(":").map(Number);
+      return ax - bx || ay - by;
+    });
+  }, [items, players]);
+
+  const addPlayer = (cell: string) => {
+    const uname = (playerDrafts[cell] ?? "").trim();
+    if (!uname) return;
+    const [x, y] = cell.split(":").map(Number);
+    const exists = players.some(
+      (p) =>
+        p.x === x && p.y === y && p.ikariam_username.toLowerCase() === uname.toLowerCase(),
+    );
+    if (exists) {
+      toast.error("Taj igrač je već dodan na ovu koordinatu.");
+      return;
+    }
+    setPlayers((prev) => [...prev, { x, y, ikariam_username: uname }]);
+    setPlayerDrafts((prev) => ({ ...prev, [cell]: "" }));
+  };
+
+  const removePlayer = (cell: string, uname: string) => {
+    const [x, y] = cell.split(":").map(Number);
+    setPlayers((prev) =>
+      prev.filter((p) => !(p.x === x && p.y === y && p.ikariam_username === uname)),
+    );
+  };
+
   const rects = items.map((i, idx) => ({ i, idx })).filter((r) => r.i.item_type === "rectangle");
 
   return (
@@ -508,17 +638,13 @@ function RegionDialog({
                   aria-label={c}
                 />
               ))}
-              <Input
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="w-28"
-              />
+              <Input value={color} onChange={(e) => setColor(e.target.value)} className="w-28" />
             </div>
           </div>
 
           <div className="rounded-xl border border-border p-3">
             <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
-              Pojedinačne koordinate
+              Koordinate i igrači
             </div>
             <div className="flex gap-2">
               <Input
@@ -529,21 +655,78 @@ function RegionDialog({
                 className="w-32"
               />
               <Button type="button" variant="outline" onClick={addPoint}>
-                Dodaj
+                Dodaj koordinatu
               </Button>
             </div>
-            {points.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {points.map(({ i, idx }) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => removeItem(idx)}
-                    className="rounded-md border border-border px-2 py-0.5 text-xs tabular-nums hover:border-destructive"
-                  >
-                    {i.x_start}:{i.y_start} ×
-                  </button>
-                ))}
+
+            {coordKeys.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {coordKeys.map((cell) => {
+                  const [x, y] = cell.split(":").map(Number);
+                  const cellPlayers = players.filter((p) => p.x === x && p.y === y);
+                  const pointIdx = items.findIndex(
+                    (i) => i.item_type === "point" && i.x_start === x && i.y_start === y,
+                  );
+                  return (
+                    <div key={cell} className="rounded-lg border border-border p-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium tabular-nums">{cell}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {cellPlayers.length} igrač{cellPlayers.length === 1 ? "" : "a"}
+                        </span>
+                        {pointIdx >= 0 && (
+                          <button
+                            type="button"
+                            className="ml-auto text-[11px] text-muted-foreground hover:text-destructive"
+                            onClick={() => {
+                              removeItem(pointIdx);
+                              setPlayers((prev) =>
+                                prev.filter((p) => !(p.x === x && p.y === y)),
+                              );
+                            }}
+                          >
+                            Obriši koordinatu ×
+                          </button>
+                        )}
+                      </div>
+                      {cellPlayers.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {cellPlayers.map((p) => (
+                            <button
+                              key={p.ikariam_username}
+                              type="button"
+                              onClick={() => removePlayer(cell, p.ikariam_username)}
+                              className="rounded-md border border-border px-2 py-0.5 text-xs hover:border-destructive"
+                            >
+                              {p.ikariam_username} ×
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          value={playerDrafts[cell] ?? ""}
+                          onChange={(e) =>
+                            setPlayerDrafts((prev) => ({ ...prev, [cell]: e.target.value }))
+                          }
+                          onKeyDown={(e) =>
+                            e.key === "Enter" && (e.preventDefault(), addPlayer(cell))
+                          }
+                          placeholder="Username igrača"
+                          className="h-8 max-w-[14rem]"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => addPlayer(cell)}
+                        >
+                          Dodaj igrača
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -589,7 +772,7 @@ function RegionDialog({
             )}
           </div>
 
-          {items.length > 0 && <MiniPreview items={items} color={color} />}
+          {items.length > 0 && <MiniPreview items={items} color={color} players={players} />}
         </div>
 
         <DialogFooter>

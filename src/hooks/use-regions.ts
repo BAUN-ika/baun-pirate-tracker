@@ -12,6 +12,13 @@ export interface RegionItem {
   y_end: number;
 }
 
+export interface RegionPlayer {
+  id: string;
+  x: number;
+  y: number;
+  ikariam_username: string;
+}
+
 export interface PirateRegion {
   id: string;
   pirate_user_id: string;
@@ -24,6 +31,7 @@ export interface PirateRegion {
   items: RegionItem[];
   points: RegionItem[];
   rectangles: RegionItem[];
+  players: RegionPlayer[];
 }
 
 export interface PirateCandidate {
@@ -69,11 +77,45 @@ export function regionCells(region: PirateRegion): string[] {
   return Array.from(set);
 }
 
+/** Dodijeljeni igrači grupisani po koordinati ("x:y"). */
+export function playersByCell(region: PirateRegion): Map<string, RegionPlayer[]> {
+  const map = new Map<string, RegionPlayer[]>();
+  for (const p of region.players) {
+    const k = `${p.x}:${p.y}`;
+    const list = map.get(k) ?? [];
+    list.push(p);
+    map.set(k, list);
+  }
+  for (const list of map.values())
+    list.sort((a, b) => a.ikariam_username.localeCompare(b.ikariam_username));
+  return map;
+}
+
+/**
+ * Jedinstven prikaz koordinata rejona: sve pojedinačne koordinate + sve koordinate
+ * (i unutar opsega) koje imaju dodijeljene igrače.
+ */
+export function regionCoordRows(
+  region: PirateRegion,
+): { key: string; x: number; y: number; players: RegionPlayer[] }[] {
+  const byCell = playersByCell(region);
+  const keys = new Set<string>([
+    ...region.points.map((p) => `${p.x_start}:${p.y_start}`),
+    ...byCell.keys(),
+  ]);
+  return Array.from(keys)
+    .map((key) => {
+      const [x, y] = key.split(":").map(Number);
+      return { key, x, y, players: byCell.get(key) ?? [] };
+    })
+    .sort((a, b) => a.x - b.x || a.y - b.y);
+}
+
 export function useRegions() {
   return useQuery({
     queryKey: ["pirate-regions"],
     queryFn: async (): Promise<PirateRegion[]> => {
-      const [{ data: regions, error }, { data: items }, { data: profiles }, { data: roles }] =
+      const [{ data: regions, error }, { data: items }, { data: rplayers }, { data: profiles }, { data: roles }] =
         await Promise.all([
           supabase
             .from("pirate_regions")
@@ -82,6 +124,9 @@ export function useRegions() {
           supabase
             .from("pirate_region_items")
             .select("id, region_id, item_type, x_start, x_end, y_start, y_end"),
+          supabase
+            .from("pirate_region_players")
+            .select("id, region_id, x, y, ikariam_username"),
           supabase.from("profiles").select("id, username"),
           supabase.from("user_roles").select("user_id, role"),
         ]);
@@ -107,6 +152,12 @@ export function useRegions() {
         });
         itemsByRegion.set(it.region_id, list);
       }
+      const playersByRegion = new Map<string, RegionPlayer[]>();
+      for (const p of (rplayers ?? []) as any[]) {
+        const list = playersByRegion.get(p.region_id) ?? [];
+        list.push({ id: p.id, x: p.x, y: p.y, ikariam_username: p.ikariam_username });
+        playersByRegion.set(p.region_id, list);
+      }
 
       return ((regions ?? []) as any[]).map((r) => {
         const list = itemsByRegion.get(r.id) ?? [];
@@ -122,6 +173,7 @@ export function useRegions() {
           items: list,
           points: list.filter((i) => i.item_type === "point"),
           rectangles: list.filter((i) => i.item_type === "rectangle"),
+          players: playersByRegion.get(r.id) ?? [],
         } satisfies PirateRegion;
       });
     },

@@ -500,6 +500,47 @@ export type Database = {
           },
         ]
       }
+      pirate_region_players: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          ikariam_username: string
+          region_id: string
+          username_key: string
+          x: number
+          y: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ikariam_username: string
+          region_id: string
+          username_key: string
+          x: number
+          y: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ikariam_username?: string
+          region_id?: string
+          username_key?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pirate_region_players_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "pirate_regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pirate_regions: {
         Row: {
           color: string

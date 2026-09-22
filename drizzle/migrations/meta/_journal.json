@@ -57,6 +57,13 @@
       "when": 1790069454609,
       "tag": "0007_create_pirate_player_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790070509757,
+      "tag": "0008_create_pirate_region_players",
+      "breakpoints": true
     }
   ]
 }

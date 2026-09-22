@@ -166,6 +166,25 @@ function MapView({ period, label }: { period: Period; label: string }) {
     [regions, selectedPirates],
   );
 
+  /* dodijeljeni igrači po koordinati iz vidljivih rejona (samo prikaz) */
+  const regionPlayersByCell = useMemo(() => {
+    const map = new Map<string, { region: PirateRegion; names: string[] }[]>();
+    if (!showRegions) return map;
+    for (const r of visibleRegions) {
+      const byCell = new Map<string, string[]>();
+      for (const p of r.players) {
+        const k = `${p.x}:${p.y}`;
+        byCell.set(k, [...(byCell.get(k) ?? []), p.ikariam_username]);
+      }
+      for (const [k, names] of byCell) {
+        const list = map.get(k) ?? [];
+        list.push({ region: r, names: names.sort((a, b) => a.localeCompare(b)) });
+        map.set(k, list);
+      }
+    }
+    return map;
+  }, [visibleRegions, showRegions]);
+
   /* kamera: viewBox nad world prostorom */
   const [zoom, setZoom] = useState(1);
   const [cam, setCam] = useState({ x: 0, y: 0 });
@@ -843,6 +862,20 @@ function MapView({ period, label }: { period: Period; label: string }) {
                     </div>
                   )}
                 </div>
+                {(regionPlayersByCell.get(hover.cell.key) ?? []).map((r) => (
+                  <div
+                    key={r.region.id}
+                    className="mt-2 border-t border-border pt-1.5 text-[10px]"
+                  >
+                    <div style={{ color: r.region.color }} className="font-medium">
+                      Rejon: {r.region.pirate_username}
+                      {r.region.name ? ` · ${r.region.name}` : ""}
+                    </div>
+                    <div className="text-muted-foreground">
+                      Dodijeljeni igrači: {r.names.join(", ")}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1067,6 +1100,36 @@ function RegionLayer({
           strokeWidth={s(1.4)}
         />
       ))}
+      {/* koordinate na kojima pirat ima konkretno dodijeljene igrače */}
+      {Array.from(
+        region.players
+          .reduce((m, p) => {
+            const k = `${p.x}:${p.y}`;
+            m.set(k, (m.get(k) ?? 0) + 1);
+            return m;
+          }, new Map<string, number>())
+          .entries(),
+      ).map(([k, count]) => {
+        const [x, y] = k.split(":").map(Number);
+        const cx = (x - 1) * CELL + CELL * 0.78;
+        const cy = (y - 1) * CELL + CELL * 0.22;
+        return (
+          <g key={`rp-${region.id}-${k}`}>
+            <circle cx={cx} cy={cy} r={s(6)} fill={region.color} fillOpacity={0.95} />
+            <text
+              x={cx}
+              y={cy}
+              fontSize={s(7.5)}
+              fontWeight={700}
+              fill="var(--background)"
+              textAnchor="middle"
+              dominantBaseline="central"
+            >
+              {count}
+            </text>
+          </g>
+        );
+      })}
       {label && (
         <text
           x={label.x}
