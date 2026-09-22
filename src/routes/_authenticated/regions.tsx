@@ -41,6 +41,7 @@ import {
   type RegionItem,
 } from "@/hooks/use-regions";
 import { saveRegion, deleteRegion } from "@/lib/regions.functions";
+import { AssignmentsSection } from "@/components/assignments-import";
 
 export const Route = createFileRoute("/_authenticated/regions")({
   component: RegionsPage,
@@ -122,6 +123,8 @@ function RegionsPage() {
         title="Rejoni pirata"
         description="Geografski rejoni — skup Ikariam koordinata i opsega ostrva za koje je pirat zadužen. Rejoni su trajna konfiguracija i ne resetuju se sa pirate round-om ni dnevnim periodima."
       />
+
+      <AssignmentsSection canManage={canManage} />
 
       <div className="pirate-card rounded-2xl p-4 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center">
         <div className="relative flex-1">
