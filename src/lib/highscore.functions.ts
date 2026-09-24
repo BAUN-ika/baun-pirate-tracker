@@ -134,6 +134,7 @@ export const submitHighscore = createServerFn({ method: "POST" })
         const protectedSource =
           acc.points_source === "manual" ||
           acc.points_source === "mission" ||
+          acc.points_source === "current_player" ||
           acc.points_source === "collected";
         const isProtected =
           protectedSource && !!authAt && authAt.getTime() >= boundary.getTime();
@@ -228,7 +229,9 @@ export const submitHighscore = createServerFn({ method: "POST" })
           .update({
             current_pirate_points: newPoints,
             last_updated_at: new Date().toISOString(),
-            points_source: "highscore",
+            // CURRENT_PLAYER je autoritativan (vlasnik sam javlja svoje poene)
+            points_source: "current_player",
+            points_authoritative_at: new Date().toISOString(),
           })
           .eq("id", match.id);
         if (upErr) throw new Error(upErr.message);
