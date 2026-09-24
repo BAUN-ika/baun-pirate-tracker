@@ -64,6 +64,13 @@
       "when": 1790070509757,
       "tag": "0008_create_pirate_region_players",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790246985376,
+      "tag": "0009_sync_target_status_with_points",
+      "breakpoints": true
     }
   ]
 }
