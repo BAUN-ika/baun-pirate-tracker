@@ -28,7 +28,7 @@ const CURRENT_PLAYER_RE =
 
 // rank . points points <username>[ (TAG)] en x:y, city name
 const SCANNER_RE =
-  /^\s*(\d+)\.\s*([\d.,]+)\s+points\s+(.+?)(?:\s+\(([^)]+)\))?\s+en\s+(\d{1,2}:\d{1,2})\s*,\s*(.+?)\s*$/i;
+  /^\s*(\d+)\.\s*([\d.,]+)\s+points\s+(.+?)(?:\s+\(([^)]+)\))?\s+en\s+(\d{1,3}:\d{1,3})\s*,\s*(.+?)\s*$/i;
 
 // Postojeći ručni format: rank . points <2 riječi labele> <username>
 const MANUAL_RE = /^\s*(\d+)\s*\.?\s+([\d.,]+)\s+\S+\s+\S+\s+(.+?)\s*$/;
@@ -38,11 +38,11 @@ function toInt(s: string): number {
 }
 
 function validCoords(c: string): boolean {
-  const m = c.match(/^(\d{1,2}):(\d{1,2})$/);
+  const m = c.match(/^(\d{1,3}):(\d{1,3})$/);
   if (!m) return false;
   const a = +m[1];
   const b = +m[2];
-  return a >= 1 && a <= 99 && b >= 1 && b <= 99;
+  return a >= 1 && a <= 100 && b >= 1 && b <= 100;
 }
 
 export function parseLine(raw: string): ParsedRow {
