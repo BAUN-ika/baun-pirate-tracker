@@ -652,3 +652,53 @@ function BulkConfirmButton({
     </AlertDialog>
   );
 }
+
+function MyPointsTotalCard({
+  total,
+  count,
+  withPoints,
+  loading,
+}: {
+  total: number;
+  count: number;
+  withPoints: number;
+  loading: boolean;
+}) {
+  return (
+    <div className="pirate-card rounded-2xl p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center gap-4">
+        <div className="size-12 rounded-xl bg-gold/10 border border-gold/30 grid place-items-center shrink-0">
+          <Coins className="size-6 text-gold" />
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">
+            Ukupno pirate poena — moji nalozi
+          </div>
+          {loading ? (
+            <div className="h-9 w-40 mt-1.5 rounded-md animate-pulse bg-muted" />
+          ) : (
+            <div className="font-display text-4xl text-gold leading-tight mt-0.5">
+              {total.toLocaleString("bs-BA")}
+            </div>
+          )}
+        </div>
+      </div>
+      {!loading && (
+        <div className="flex gap-8 sm:gap-10">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              Nalozi
+            </div>
+            <div className="font-display text-xl mt-0.5">{count}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              S poenima
+            </div>
+            <div className="font-display text-xl mt-0.5">{withPoints}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
