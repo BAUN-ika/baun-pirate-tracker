@@ -257,6 +257,13 @@ function AccountsPage() {
         }
       />
 
+      <MyPointsTotalCard
+        total={myTotal.total}
+        count={myTotal.count}
+        withPoints={myTotal.withPoints}
+        loading={accounts.isLoading}
+      />
+
       <BulkMissionsCard
         accountCount={(accounts.data ?? []).length}
         busy={bulkMut.isPending}
