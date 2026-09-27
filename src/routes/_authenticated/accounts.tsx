@@ -665,7 +665,7 @@ function MyPointsTotalCard({
   loading: boolean;
 }) {
   return (
-    <div className="pirate-card rounded-2xl p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="pirate-card rounded-2xl p-6 mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
       <div className="flex items-center gap-4">
         <div className="size-12 rounded-xl bg-gold/10 border border-gold/30 grid place-items-center shrink-0">
           <Coins className="size-6 text-gold" />
