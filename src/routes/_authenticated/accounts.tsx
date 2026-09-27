@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Anchor, MapPin, Pencil, Plus, Ship, Timer, Trash2, X } from "lucide-react";
+import { Anchor, Coins, MapPin, Pencil, Plus, Ship, Timer, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -182,6 +182,15 @@ function AccountsPage() {
 
   const coordsValid = newCoords.trim() === "" ? false : validCoords(newCoords.trim());
 
+  const myTotal = useMemo(() => {
+    const rows = accounts.data ?? [];
+    return {
+      total: rows.reduce((sum, r) => sum + Number(r.current_pirate_points ?? 0), 0),
+      withPoints: rows.filter((r) => Number(r.current_pirate_points ?? 0) > 0).length,
+      count: rows.length,
+    };
+  }, [accounts.data]);
+
   return (
     <div>
       <PageHeader
@@ -246,6 +255,13 @@ function AccountsPage() {
             </DialogContent>
           </Dialog>
         }
+      />
+
+      <MyPointsTotalCard
+        total={myTotal.total}
+        count={myTotal.count}
+        withPoints={myTotal.withPoints}
+        loading={accounts.isLoading}
       />
 
       <BulkMissionsCard
@@ -634,5 +650,55 @@ function BulkConfirmButton({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+  );
+}
+
+function MyPointsTotalCard({
+  total,
+  count,
+  withPoints,
+  loading,
+}: {
+  total: number;
+  count: number;
+  withPoints: number;
+  loading: boolean;
+}) {
+  return (
+    <div className="pirate-card rounded-2xl p-6 mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div className="flex items-center gap-4">
+        <div className="size-12 rounded-xl bg-gold/10 border border-gold/30 grid place-items-center shrink-0">
+          <Coins className="size-6 text-gold" />
+        </div>
+        <div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">
+            Ukupno pirate poena — moji nalozi
+          </div>
+          {loading ? (
+            <div className="h-9 w-40 mt-1.5 rounded-md animate-pulse bg-muted" />
+          ) : (
+            <div className="font-display text-4xl text-gold leading-tight mt-0.5">
+              {total.toLocaleString("bs-BA")}
+            </div>
+          )}
+        </div>
+      </div>
+      {!loading && (
+        <div className="flex gap-8 sm:gap-10">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              Nalozi
+            </div>
+            <div className="font-display text-xl mt-0.5">{count}</div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              S poenima
+            </div>
+            <div className="font-display text-xl mt-0.5">{withPoints}</div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
