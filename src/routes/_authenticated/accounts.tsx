@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Anchor, MapPin, Pencil, Plus, Ship, Timer, Trash2, X } from "lucide-react";
+import { Anchor, Coins, MapPin, Pencil, Plus, Ship, Timer, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
@@ -181,6 +181,15 @@ function AccountsPage() {
   }
 
   const coordsValid = newCoords.trim() === "" ? false : validCoords(newCoords.trim());
+
+  const myTotal = useMemo(() => {
+    const rows = accounts.data ?? [];
+    return {
+      total: rows.reduce((sum, r) => sum + Number(r.current_pirate_points ?? 0), 0),
+      withPoints: rows.filter((r) => Number(r.current_pirate_points ?? 0) > 0).length,
+      count: rows.length,
+    };
+  }, [accounts.data]);
 
   return (
     <div>
