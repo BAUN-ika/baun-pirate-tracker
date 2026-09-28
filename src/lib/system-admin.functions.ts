@@ -87,7 +87,7 @@ export const sysSaveAlliance = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => AllianceSchema.parse(i))
   .handler(async ({ data, context }) => {
     const db = await admin(context);
-    const row: Record<string, unknown> = {
+    const row: { world_id: string; name: string; tag: string; is_active: boolean; passcode_hash?: string } = {
       world_id: data.world_id,
       name: data.name,
       tag: data.tag,

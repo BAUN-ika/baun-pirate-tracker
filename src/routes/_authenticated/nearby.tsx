@@ -1,20 +1,12 @@
 import { useOwnTag } from "@/hooks/use-tenant";
 import { useMemo, useState } from "react";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { createFileRoute } from "@tanstack/react-router";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { useQuery } from "@tanstack/react-query";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { Compass } from "lucide-react";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { supabase } from "@/integrations/supabase/client";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { PageHeader } from "@/components/page-header";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { Input } from "@/components/ui/input";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { Label } from "@/components/ui/label";
-import { useOwnTag } from "@/hooks/use-tenant";
 import {
   Select,
   SelectContent,
@@ -22,19 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { CoordsLink, validCoords } from "@/components/coords-link";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { AllianceBadge, useEffectiveRelation } from "@/components/alliance-badge";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { TargetActions, TargetStatusCell } from "@/components/target-actions";
-import { useOwnTag } from "@/hooks/use-tenant";
 import {
   effectivePoints,
   useTargetActions,
   useTargetStatusMap,
 } from "@/hooks/use-target-status";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { getCurrentPeriod, getPreviousPeriod } from "@/lib/period";
 
 export const Route = createFileRoute("/_authenticated/nearby")({

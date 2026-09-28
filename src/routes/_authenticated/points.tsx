@@ -1,26 +1,15 @@
 import { useOwnTag } from "@/hooks/use-tenant";
 import { useEffect, useMemo, useState } from "react";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { createFileRoute } from "@tanstack/react-router";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { useServerFn } from "@tanstack/react-start";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { Search, Timer } from "lucide-react";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { toast } from "sonner";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { supabase } from "@/integrations/supabase/client";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { PageHeader } from "@/components/page-header";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { Button } from "@/components/ui/button";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { Input } from "@/components/ui/input";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { Progress } from "@/components/ui/progress";
-import { useOwnTag } from "@/hooks/use-tenant";
 import {
   Select,
   SelectContent,
@@ -28,24 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { TargetActions, TargetStatusCell } from "@/components/target-actions";
-import { useOwnTag } from "@/hooks/use-tenant";
 import {
   effectivePoints,
   statusOf,
   useTargetActions,
   useTargetStatusMap,
 } from "@/hooks/use-target-status";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { useEffectiveRelation } from "@/components/alliance-badge";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { AllianceRelationsCard } from "@/components/admin-alliance-relations";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { completeDueMissions } from "@/lib/missions.functions";
-import { useOwnTag } from "@/hooks/use-tenant";
 import { CoordsLink } from "@/components/coords-link";
 
 export const Route = createFileRoute("/_authenticated/points")({
