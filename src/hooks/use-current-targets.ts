@@ -11,6 +11,7 @@ import {
   useTargetStatusMap,
   type TargetStatusRow,
 } from "@/hooks/use-target-status";
+import { useOwnTag } from "@/hooks/use-tenant";
 import type { Period } from "@/lib/period";
 
 /**
@@ -126,6 +127,7 @@ function resolve(
     relation: RelationType | null;
     fromPlayer: boolean;
   },
+  ownTag: string,
 ): CurrentPirateTarget[] {
   const byKey = new Map<string, CurrentPirateTarget>();
 
@@ -157,7 +159,7 @@ function resolve(
     const t = byKey.get(key) ?? base(key, a.ikariam_username.trim());
     t.source = "alliance";
     t.ikariam_account_id = a.id;
-    t.alliance_tag = t.alliance_tag ?? "BAUN";
+    t.alliance_tag = t.alliance_tag ?? ownTag;
     t.current_pirate_points = a.current_pirate_points ?? 0;
     t.coordinates = a.fortress_coordinates ?? t.coordinates;
     t.updated_at = a.last_updated_at ?? t.updated_at;
@@ -221,10 +223,11 @@ export function useCurrentTargets(period: Period) {
   const { data, isLoading } = useTargetSources(period);
   const { map: statuses } = useTargetStatusMap();
   const effRelation = useEffectiveRelation();
+  const ownTag = useOwnTag();
 
   const targets = useMemo(
-    () => resolve(data?.accounts ?? [], data?.entries ?? [], statuses, effRelation),
-    [data, statuses, effRelation],
+    () => resolve(data?.accounts ?? [], data?.entries ?? [], statuses, effRelation, ownTag),
+    [data, statuses, effRelation, ownTag],
   );
 
   return { targets, isLoading };

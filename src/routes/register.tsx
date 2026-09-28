@@ -49,7 +49,7 @@ function RegisterPage() {
         setLoading(false);
         return;
       }
-      toast.success("Dobrodošao u BAUN savez!");
+      toast.success("Dobrodošao u savez!");
       nav({ to: "/dashboard" });
     } catch (err: any) {
       toast.error("Greška", { description: err?.message ?? "Pokušaj ponovo." });
@@ -61,7 +61,7 @@ function RegisterPage() {
   return (
     <AuthShell
       title="Registracija"
-      subtitle="Potreban je važeći BAUN passcode dobijen od admina."
+      subtitle="Potreban je važeći passcode saveza dobijen od admina."
       footer={
         <span className="text-muted-foreground">
           Već imaš nalog?{" "}
@@ -108,7 +108,7 @@ function RegisterPage() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="passcode" className="text-gold">
-            BAUN passcode
+            Passcode saveza
           </Label>
           <Input
             id="passcode"

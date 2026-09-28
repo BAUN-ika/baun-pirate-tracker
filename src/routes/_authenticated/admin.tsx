@@ -83,7 +83,7 @@ function PasscodeCard() {
   const mut = useMutation({
     mutationFn: () => fn({ data: { new_passcode: val } }),
     onSuccess: () => {
-      toast.success("BAUN passcode promijenjen.");
+      toast.success("Passcode saveza promijenjen.");
       setVal("");
     },
     onError: (e: any) => toast.error("Greška", { description: e?.message }),
@@ -92,7 +92,7 @@ function PasscodeCard() {
     <div className="pirate-card rounded-2xl p-6">
       <div className="flex items-center gap-2 mb-1">
         <KeyRound className="size-4 text-gold" />
-        <h2 className="font-display text-lg">BAUN passcode</h2>
+        <h2 className="font-display text-lg">Passcode saveza</h2>
       </div>
       <p className="text-xs text-muted-foreground mb-4">
         Passcode koji savez koristi tokom registracije. Promijeni i podijeli sa
