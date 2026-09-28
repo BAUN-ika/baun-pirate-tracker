@@ -9,11 +9,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTenant } from "@/hooks/use-tenant";
+import { LanguageSelect } from "@/components/language-select";
 
 /** Oznaka svijeta gore desno; izbornik samo kad korisnik ima više članstava. */
 export function TenantBar() {
   const { tenant, switchTo, exitViewAs } = useTenant();
-  if (!tenant || !tenant.activeAlliance) return null;
+  if (!tenant || !tenant.activeAlliance)
+    return (
+      <div className="flex justify-end mb-4">
+        <LanguageSelect />
+      </div>
+    );
   const { activeWorld, activeAlliance, memberAlliances, worlds, isViewAs } = tenant;
   const worldLabel = (id: string) => {
     const w = worlds.find((x) => x.id === id);
@@ -55,7 +61,7 @@ export function TenantBar() {
             </SelectContent>
           </Select>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-muted-foreground">
+          <span data-no-i18n className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-muted-foreground">
             {activeWorld?.flag_emoji ? (
               <span>{activeWorld.flag_emoji}</span>
             ) : (
@@ -64,7 +70,7 @@ export function TenantBar() {
             {activeWorld?.name}
           </span>
         )}
-        {/* mjesto za budući izbor jezika */}
+        <LanguageSelect />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Ship } from "lucide-react";
+import { LanguageSelect } from "@/components/language-select";
 
 export function AuthShell({
   title,
@@ -13,7 +14,10 @@ export function AuthShell({
   footer?: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-10">
+      <div className="absolute top-4 right-4">
+        <LanguageSelect />
+      </div>
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center justify-center gap-3 mb-8">
           <div className="size-12 rounded-full bg-gold/15 border border-gold/40 flex items-center justify-center">

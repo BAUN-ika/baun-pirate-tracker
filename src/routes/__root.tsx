@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { I18nProvider } from "@/i18n/i18n";
 import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
@@ -135,9 +136,11 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
+      <I18nProvider>
       <AuthSync />
       <Outlet />
       <Toaster richColors theme="dark" position="top-right" />
+      </I18nProvider>
     </QueryClientProvider>
   );
 }
