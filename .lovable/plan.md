@@ -61,7 +61,14 @@ Radim u fazama, a svaka se zasebno provjerava i objavljuje. Tako BAUN nikad ne o
 - Klijentski resolver (`use-current-targets`, klasteri, najbliži, mapa) prima izvor iz server funkcije. `effective_relation` se uvijek računa lokalno.
 - Query ključevi dobijaju alliance_id, pa promjena konteksta osvježava sve.
 
-## Otvorena pitanja (predlažem default)
+## Spajanje istog igrača iz više saveza (global view)
 
-- Ako isti igrač iz highscore liste postoji u globalnom pregledu iz dva saveza, prikazuje se najnoviji unos.
+- Ako isti igrač postoji u globalnom pregledu iz više saveza, važe ista postojeća pravila prioriteta kao i sada:
+  - ručni unos kroz "Moji nalozi" i CURRENT_PLAYER se uvijek vjeruju;
+  - za ostale unose iz liste, lista važi samo ako između posljednjih 18:00 i trenutka unosa liste nije bilo druge promjene za tog igrača (ručni unos, misija, CURRENT_PLAYER, pokupi);
+  - pokupljanje ima prednost nad sinhronizacijom iz liste.
+- Pravila se primjenjuju nad unosima iz svih vidljivih saveza. Tuđi operativni detalji ostaju skriveni.
+
+## Napomena
+
 - Zbog veličine, ovo je nekoliko uzastopnih krugova rada. Nakon svake faze javljam šta je gotovo.
