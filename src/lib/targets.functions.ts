@@ -5,7 +5,10 @@ import { safeAuditLog } from "@/lib/audit";
 
 async function getRoles(supabase: any, userId: string): Promise<string[]> {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-  return ((data ?? []) as { role: string }[]).map((r) => r.role);
+  const roles = ((data ?? []) as { role: string }[]).map((r) => r.role);
+  const { data: sa } = await supabase.rpc("is_system_admin", { _user_id: userId });
+  if (sa) roles.push("admin");
+  return roles;
 }
 
 async function isPirate(supabase: any, userId: string) {

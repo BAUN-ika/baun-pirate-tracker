@@ -2,6 +2,7 @@ import { safeAuditLog } from "@/lib/audit";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { activeAllianceId, hasAnyRole } from "@/lib/tenant";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const CoordsSchema = z
@@ -151,17 +152,13 @@ export const collectPoints = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { userId } = context;
     // verify role
-    const { data: roles } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    const allowed = (roles ?? []).some(
-      (r) =>
-        r.role === "admin" ||
-        r.role === "glavni_pirat" ||
-        r.role === "pirat" ||
-        r.role === "ide_na_plasman",
-    );
+    const allowed = await hasAnyRole(context.supabase, userId, [
+      "admin",
+      "glavni_pirat",
+      "pirat",
+      "ide_na_plasman",
+    ]);
+    const allianceId = await activeAllianceId(context.supabase);
     if (!allowed) {
       throw new Error("Nemaš privilegiju za pokupljanje poena.");
     }
@@ -170,7 +167,9 @@ export const collectPoints = createServerFn({ method: "POST" })
       .from("ikariam_accounts")
       .select("current_pirate_points, ikariam_username")
       .eq("id", data.account_id)
+      .eq("alliance_id", allianceId)
       .single();
+    if (!prev) throw new Error("Nalog nije pronađen u tvom savezu.");
     const { data: row, error } = await supabaseAdmin
       .from("ikariam_accounts")
       .update({
@@ -186,6 +185,7 @@ export const collectPoints = createServerFn({ method: "POST" })
         assignment_started_at: null,
       })
       .eq("id", data.account_id)
+      .eq("alliance_id", allianceId)
       .select()
       .single();
     if (error) throw new Error(error.message);
