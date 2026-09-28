@@ -13,6 +13,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedSystemAdminRouteImport } from './routes/_authenticated/system-admin'
 import { Route as AuthenticatedRegionsRouteImport } from './routes/_authenticated/regions'
 import { Route as AuthenticatedPointsRouteImport } from './routes/_authenticated/points'
 import { Route as AuthenticatedPirateScannerRouteImport } from './routes/_authenticated/pirate-scanner'
@@ -46,6 +47,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSystemAdminRoute =
+  AuthenticatedSystemAdminRouteImport.update({
+    id: '/system-admin',
+    path: '/system-admin',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRegionsRoute = AuthenticatedRegionsRouteImport.update({
   id: '/regions',
   path: '/regions',
@@ -131,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
   '/regions': typeof AuthenticatedRegionsRoute
+  '/system-admin': typeof AuthenticatedSystemAdminRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
   '/highscore/': typeof AuthenticatedHighscoreIndexRoute
 }
@@ -149,6 +157,7 @@ export interface FileRoutesByTo {
   '/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/points': typeof AuthenticatedPointsRoute
   '/regions': typeof AuthenticatedRegionsRoute
+  '/system-admin': typeof AuthenticatedSystemAdminRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
   '/highscore': typeof AuthenticatedHighscoreIndexRoute
 }
@@ -169,6 +178,7 @@ export interface FileRoutesById {
   '/_authenticated/pirate-scanner': typeof AuthenticatedPirateScannerRoute
   '/_authenticated/points': typeof AuthenticatedPointsRoute
   '/_authenticated/regions': typeof AuthenticatedRegionsRoute
+  '/_authenticated/system-admin': typeof AuthenticatedSystemAdminRoute
   '/_authenticated/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
   '/_authenticated/highscore/': typeof AuthenticatedHighscoreIndexRoute
 }
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/pirate-scanner'
     | '/points'
     | '/regions'
+    | '/system-admin'
     | '/highscore/submit'
     | '/highscore/'
   fileRoutesByTo: FileRoutesByTo
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/pirate-scanner'
     | '/points'
     | '/regions'
+    | '/system-admin'
     | '/highscore/submit'
     | '/highscore'
   id:
@@ -226,6 +238,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pirate-scanner'
     | '/_authenticated/points'
     | '/_authenticated/regions'
+    | '/_authenticated/system-admin'
     | '/_authenticated/highscore/submit'
     | '/_authenticated/highscore/'
   fileRoutesById: FileRoutesById
@@ -266,6 +279,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/system-admin': {
+      id: '/_authenticated/system-admin'
+      path: '/system-admin'
+      fullPath: '/system-admin'
+      preLoaderRoute: typeof AuthenticatedSystemAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/regions': {
       id: '/_authenticated/regions'
@@ -373,6 +393,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPirateScannerRoute: typeof AuthenticatedPirateScannerRoute
   AuthenticatedPointsRoute: typeof AuthenticatedPointsRoute
   AuthenticatedRegionsRoute: typeof AuthenticatedRegionsRoute
+  AuthenticatedSystemAdminRoute: typeof AuthenticatedSystemAdminRoute
   AuthenticatedHighscoreSubmitRoute: typeof AuthenticatedHighscoreSubmitRoute
   AuthenticatedHighscoreIndexRoute: typeof AuthenticatedHighscoreIndexRoute
 }
@@ -389,6 +410,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPirateScannerRoute: AuthenticatedPirateScannerRoute,
   AuthenticatedPointsRoute: AuthenticatedPointsRoute,
   AuthenticatedRegionsRoute: AuthenticatedRegionsRoute,
+  AuthenticatedSystemAdminRoute: AuthenticatedSystemAdminRoute,
   AuthenticatedHighscoreSubmitRoute: AuthenticatedHighscoreSubmitRoute,
   AuthenticatedHighscoreIndexRoute: AuthenticatedHighscoreIndexRoute,
 }
