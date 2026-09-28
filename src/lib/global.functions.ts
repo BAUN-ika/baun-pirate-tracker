@@ -85,14 +85,14 @@ export const getGlobalEntries = createServerFn({ method: "POST" })
     // pobjeđuje highscore; inače pobjeđuje noviji podatak.
     const { data: accs } = await db
       .from("ikariam_accounts")
-      .select("ikariam_username, current_pirate_points, fortress_coordinates, last_updated_at, points_source, points_authoritative_at")
+      .select("alliance_id, ikariam_username, current_pirate_points, fortress_coordinates, last_updated_at, points_source, points_authoritative_at")
       .eq("world_id", worldId)
       .neq("alliance_id", allianceId);
     const { data: others } = await db
       .from("alliances")
       .select("id, tag")
       .eq("world_id", worldId);
-    void others;
+    const tagOf = new Map((others ?? []).map((o) => [o.id, o.tag]));
     const start = new Date(data.startISO).getTime();
     for (const a of accs ?? []) {
       const protectedSrc = ["manual", "mission", "current_player", "collected"].includes(a.points_source);
@@ -102,7 +102,7 @@ export const getGlobalEntries = createServerFn({ method: "POST" })
         rank: null,
         ikariam_username: a.ikariam_username,
         pirate_points: a.current_pirate_points ?? 0,
-        alliance_tag: null,
+        alliance_tag: tagOf.get(a.alliance_id as string) ?? null,
         coordinates: a.fortress_coordinates,
         city_name: null,
         // Zaštićeni izvor dobija prednost u "najnoviji pobjeđuje" dedupu.
