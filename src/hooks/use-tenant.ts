@@ -83,3 +83,9 @@ export function useTenant() {
 
   return { ...q, tenant: q.data ?? null, switchTo, exitViewAs };
 }
+
+/** Tag aktivnog saveza (fallback "BAUN" dok se kontekst učitava). */
+export function useOwnTag(): string {
+  const { tenant } = useTenant();
+  return tenant?.activeAlliance?.tag ?? "BAUN";
+}
