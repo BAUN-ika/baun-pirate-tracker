@@ -112,3 +112,71 @@ export const getGlobalEntries = createServerFn({ method: "POST" })
     }
     return out;
   });
+
+export interface GlobalStatus {
+  username_key: string;
+  ikariam_username: string;
+  coordinates: string | null;
+  alliance_tag: string | null;
+  status: string;
+  collected_at: string | null;
+}
+
+/**
+ * Sanitizovani statusi (READY / EN_ROUTE / COLLECTED) iz aktivnih rundi DRUGIH saveza
+ * ISTOG svijeta. Dozvoljeno ako korisnik/savez ima bilo koju globalnu dozvolu.
+ * Nikad ne vraća ko je krenuo ni ko je pokupio, niti koliko je pokupljeno.
+ * Svjetovi se nikad ne miješaju.
+ */
+export const getGlobalStatuses = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<GlobalStatus[]> => {
+    const allianceId = await activeAllianceId(context.supabase);
+    const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
+    const { data: al } = await db.from("alliances").select("world_id").eq("id", allianceId).single();
+    if (!al?.world_id) return [];
+    const worldId = al.world_id;
+    const cols = Object.values(SECTION_COL);
+    const [{ data: up }, { data: ap }] = await Promise.all([
+      db.from("user_visibility_permissions").select(cols.join(",")).eq("user_id", context.userId).eq("world_id", worldId).maybeSingle(),
+      db.from("alliance_visibility_permissions").select(cols.join(",")).eq("alliance_id", allianceId).maybeSingle(),
+    ]);
+    const u = up as Record<string, boolean | null> | null;
+    const a = ap as Record<string, boolean | null> | null;
+    const allowed = cols.some((c) => (u?.[c] ?? !!a?.[c]) === true);
+    if (!allowed) return [];
+
+    const { data: rounds } = await db
+      .from("pirate_rounds")
+      .select("id")
+      .eq("world_id", worldId)
+      .eq("status", "active")
+      .neq("alliance_id", allianceId);
+    const ids = (rounds ?? []).map((r) => r.id);
+    if (!ids.length) return [];
+    const { data: rows, error } = await db
+      .from("pirate_target_status")
+      .select("username_key, ikariam_username, coordinates, alliance_tag, status, collected_at, updated_at, world_id")
+      .eq("world_id", worldId)
+      .neq("alliance_id", allianceId)
+      .in("pirate_round_id", ids)
+      .in("status", ["en_route", "collected"])
+      .order("updated_at", { ascending: false })
+      .limit(5000);
+    if (error) throw new Error(error.message);
+    const seen = new Set<string>();
+    const out: GlobalStatus[] = [];
+    for (const r of rows ?? []) {
+      if (r.world_id !== worldId || seen.has(r.username_key)) continue;
+      seen.add(r.username_key);
+      out.push({
+        username_key: r.username_key,
+        ikariam_username: r.ikariam_username,
+        coordinates: r.coordinates,
+        alliance_tag: r.alliance_tag,
+        status: r.status,
+        collected_at: r.collected_at,
+      });
+    }
+    return out;
+  });
