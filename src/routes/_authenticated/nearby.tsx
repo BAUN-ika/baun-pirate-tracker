@@ -1,3 +1,4 @@
+import { mergeGlobal } from "@/hooks/use-global-entries";
 import { useOwnTag } from "@/hooks/use-tenant";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
@@ -117,7 +118,7 @@ function useCandidates() {
           if (data.length < PAGE) break;
           from += PAGE;
         }
-        return all;
+        return mergeGlobal(all, "nearest", startISO, endISO);
       };
 
       let hs = await loadHs(cur.start.toISOString(), cur.end.toISOString());

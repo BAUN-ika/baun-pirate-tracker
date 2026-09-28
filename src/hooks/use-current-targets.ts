@@ -1,3 +1,4 @@
+import { mergeGlobal } from "@/hooks/use-global-entries";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,7 +95,9 @@ async function loadHighscore(startISO: string, endISO: string): Promise<RawEntry
     if (data.length < PAGE) break;
     from += PAGE;
   }
-  return all;
+  return (await mergeGlobal(all, "map", startISO, endISO)).map((e, i) =>
+    "id" in e && e.id ? (e as RawEntry) : ({ ...e, id: `global-${i}` } as RawEntry),
+  );
 }
 
 /** Sirovi izvori za dati period (accounts + highscore). */

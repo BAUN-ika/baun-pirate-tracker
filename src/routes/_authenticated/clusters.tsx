@@ -1,3 +1,4 @@
+import { mergeGlobal } from "@/hooks/use-global-entries";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -122,10 +123,16 @@ function useClusterData(period: Period) {
         from += PAGE;
       }
 
-      // Dedup by username — keep most recent entry.
+      // Dedup by username — keep most recent entry (incl. sanitized global data if allowed).
+      const merged = (await mergeGlobal(
+        all,
+        "clusters",
+        period.start.toISOString(),
+        period.end.toISOString(),
+      )) as Raw[];
       const seen = new Set<string>();
       const deduped: Raw[] = [];
-      for (const r of all) {
+      for (const r of merged) {
         const k = r.ikariam_username.trim().toLowerCase();
         if (seen.has(k)) continue;
         seen.add(k);
