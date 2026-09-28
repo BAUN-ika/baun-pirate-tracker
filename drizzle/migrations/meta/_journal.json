@@ -71,6 +71,13 @@
       "when": 1790246985376,
       "tag": "0009_sync_target_status_with_points",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790583519994,
+      "tag": "0010_multi_tenant_foundation",
+      "breakpoints": true
     }
   ]
 }
