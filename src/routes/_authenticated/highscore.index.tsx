@@ -75,7 +75,7 @@ function useHighscore(period: Period) {
         "highscore",
         period.start.toISOString(),
         period.end.toISOString(),
-      )) as Raw[];
+      )).filter((r) => r.rank != null) as Raw[];
       const seen = new Set<string>();
       const deduped: Raw[] = [];
       for (const r of merged) {
@@ -84,7 +84,7 @@ function useHighscore(period: Period) {
         seen.add(k);
         deduped.push(r);
       }
-      const ids = Array.from(new Set(deduped.map((r) => r.submitted_by_user_id)));
+      const ids = Array.from(new Set(deduped.map((r) => r.submitted_by_user_id).filter(Boolean)));
       const profiles =
         ids.length > 0
           ? (await supabase.from("profiles").select("id, username").in("id", ids))
