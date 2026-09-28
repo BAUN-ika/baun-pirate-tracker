@@ -9,6 +9,7 @@ import {
   targetCollect,
   targetSetEnRoute,
 } from "@/lib/targets.functions";
+import { getGlobalStatuses, type GlobalStatus } from "@/lib/global.functions";
 
 export interface PirateRound {
   id: string;
@@ -63,9 +64,27 @@ export function useTargetStatusMap() {
       query = roundId
         ? query.eq("pirate_round_id", roundId)
         : query.is("pirate_round_id", null);
-      const { data, error } = await query;
+      const [{ data, error }, globalRows] = await Promise.all([
+        query,
+        getGlobalStatuses().catch(() => [] as GlobalStatus[]),
+      ]);
       if (error) throw error;
       const m = new Map<string, TargetStatusRow>();
+      // Statusi drugih saveza istog svijeta (sanitizovano: bez imena pirata).
+      for (const g of globalRows) {
+        m.set(g.username_key, {
+          id: `global-${g.username_key}`,
+          username_key: g.username_key,
+          ikariam_username: g.ikariam_username,
+          coordinates: g.coordinates,
+          alliance_tag: g.alliance_tag,
+          status: g.status,
+          assigned_pirate_name: null,
+          collected_at: g.collected_at,
+          collected_points: null,
+        });
+      }
+      // Vlastiti status uvijek ima prednost.
       for (const r of (data ?? []) as TargetStatusRow[]) m.set(r.username_key, r);
       return m;
     },
