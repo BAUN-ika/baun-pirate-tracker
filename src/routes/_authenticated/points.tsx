@@ -1,3 +1,4 @@
+import { useOwnTag } from "@/hooks/use-tenant";
 import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,6 +43,7 @@ function PointsPage() {
   const { map: statusMap } = useTargetStatusMap();
   const targetActions = useTargetActions("points");
   const effRelation = useEffectiveRelation();
+  const ownTag = useOwnTag();
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("points");
@@ -295,10 +297,10 @@ function PointsPage() {
                           target={{
                             ikariam_username: r.ikariam_username,
                             coordinates: r.fortress_coordinates,
-                            alliance_tag: "BAUN",
+                            alliance_tag: ownTag,
                             pirate_points: points,
                           }}
-                          relation={effRelation(r.ikariam_username, "BAUN").relation}
+                          relation={effRelation(r.ikariam_username, ownTag).relation}
                           map={statusMap}
                           actions={targetActions}
                         />

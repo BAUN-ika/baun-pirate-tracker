@@ -1,3 +1,4 @@
+import { mergeGlobal } from "@/hooks/use-global-entries";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,7 @@ import {
   useTargetStatusMap,
   type TargetStatusRow,
 } from "@/hooks/use-target-status";
+import { useOwnTag } from "@/hooks/use-tenant";
 import type { Period } from "@/lib/period";
 
 /**
@@ -93,7 +95,9 @@ async function loadHighscore(startISO: string, endISO: string): Promise<RawEntry
     if (data.length < PAGE) break;
     from += PAGE;
   }
-  return all;
+  return (await mergeGlobal(all, "map", startISO, endISO)).map((e, i) =>
+    "id" in e && e.id ? (e as RawEntry) : ({ ...e, id: `global-${i}` } as RawEntry),
+  );
 }
 
 /** Sirovi izvori za dati period (accounts + highscore). */
@@ -126,6 +130,7 @@ function resolve(
     relation: RelationType | null;
     fromPlayer: boolean;
   },
+  ownTag: string,
 ): CurrentPirateTarget[] {
   const byKey = new Map<string, CurrentPirateTarget>();
 
@@ -157,7 +162,7 @@ function resolve(
     const t = byKey.get(key) ?? base(key, a.ikariam_username.trim());
     t.source = "alliance";
     t.ikariam_account_id = a.id;
-    t.alliance_tag = t.alliance_tag ?? "BAUN";
+    t.alliance_tag = t.alliance_tag ?? ownTag;
     t.current_pirate_points = a.current_pirate_points ?? 0;
     t.coordinates = a.fortress_coordinates ?? t.coordinates;
     t.updated_at = a.last_updated_at ?? t.updated_at;
@@ -221,10 +226,11 @@ export function useCurrentTargets(period: Period) {
   const { data, isLoading } = useTargetSources(period);
   const { map: statuses } = useTargetStatusMap();
   const effRelation = useEffectiveRelation();
+  const ownTag = useOwnTag();
 
   const targets = useMemo(
-    () => resolve(data?.accounts ?? [], data?.entries ?? [], statuses, effRelation),
-    [data, statuses, effRelation],
+    () => resolve(data?.accounts ?? [], data?.entries ?? [], statuses, effRelation, ownTag),
+    [data, statuses, effRelation, ownTag],
   );
 
   return { targets, isLoading };

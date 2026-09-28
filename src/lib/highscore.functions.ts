@@ -1,3 +1,4 @@
+import { activeAllianceId } from "@/lib/tenant";
 import { safeAuditLog } from "@/lib/audit";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -61,11 +62,9 @@ export const submitHighscore = createServerFn({ method: "POST" })
     const { start, end } = getCurrentPeriod();
 
     // Check admin role for ownership override
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    const isAdmin = (roles ?? []).some((r) => r.role === "admin");
+    const { data: isAdminRpc } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const isAdmin = !!isAdminRpc;
+    const allianceId = await activeAllianceId(supabase);
 
     // Insert submission
     const { data: submission, error: sErr } = await supabase
@@ -108,7 +107,8 @@ export const submitHighscore = createServerFn({ method: "POST" })
         .from("ikariam_accounts")
         .select(
           "id, ikariam_username, current_pirate_points, points_source, points_authoritative_at",
-        );
+        )
+        .eq("alliance_id", allianceId);
 
       const byName = new Map<
         string,
@@ -199,6 +199,7 @@ export const submitHighscore = createServerFn({ method: "POST" })
       const { data: accounts } = await supabaseAdmin
         .from("ikariam_accounts")
         .select("id, owner_user_id, current_pirate_points, ikariam_username")
+        .eq("alliance_id", allianceId)
         .ilike("ikariam_username", uname);
 
       const match = (accounts ?? []).find(

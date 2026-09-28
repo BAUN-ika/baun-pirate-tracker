@@ -12,6 +12,8 @@ export function usernameKey(name: string) {
 async function requireRegionManager(supabase: any, userId: string) {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   const roles = ((data ?? []) as { role: string }[]).map((r) => r.role);
+  const { data: sa } = await supabase.rpc("is_system_admin", { _user_id: userId });
+  if (sa) roles.push("admin");
   if (!roles.includes("admin") && !roles.includes("glavni_pirat"))
     throw new Error("Samo admin ili glavni pirat može upravljati rejonima.");
 }

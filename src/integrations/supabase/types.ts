@@ -16,30 +16,143 @@ export type Database = {
     Tables: {
       alliance_relations: {
         Row: {
+          alliance_id: string | null
           alliance_tag: string
           created_at: string
           created_by: string | null
           id: string
           relation_type: string
           updated_at: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           alliance_tag: string
           created_at?: string
           created_by?: string | null
           id?: string
           relation_type: string
           updated_at?: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           alliance_tag?: string
           created_at?: string
           created_by?: string | null
           id?: string
           relation_type?: string
           updated_at?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "alliance_relations_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alliance_relations_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alliance_visibility_permissions: {
+        Row: {
+          alliance_id: string
+          can_view_global_clusters: boolean
+          can_view_global_highscore: boolean
+          can_view_global_map: boolean
+          can_view_global_nearest_points: boolean
+          created_at: string
+          id: string
+          updated_at: string
+          world_id: string
+        }
+        Insert: {
+          alliance_id: string
+          can_view_global_clusters?: boolean
+          can_view_global_highscore?: boolean
+          can_view_global_map?: boolean
+          can_view_global_nearest_points?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          world_id: string
+        }
+        Update: {
+          alliance_id?: string
+          can_view_global_clusters?: boolean
+          can_view_global_highscore?: boolean
+          can_view_global_map?: boolean
+          can_view_global_nearest_points?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          world_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alliance_visibility_permissions_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: true
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alliance_visibility_permissions_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alliances: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          passcode_hash: string
+          tag: string
+          world_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          passcode_hash: string
+          tag: string
+          world_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          passcode_hash?: string
+          tag?: string
+          world_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alliances_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       app_settings: {
         Row: {
@@ -65,35 +178,57 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          alliance_id: string | null
           created_at: string
           entity_id: string | null
           entity_type: string | null
           id: string
           metadata: Json | null
           user_id: string | null
+          world_id: string | null
         }
         Insert: {
           action: string
+          alliance_id?: string | null
           created_at?: string
           entity_id?: string | null
           entity_type?: string | null
           id?: string
           metadata?: Json | null
           user_id?: string | null
+          world_id?: string | null
         }
         Update: {
           action?: string
+          alliance_id?: string | null
           created_at?: string
           entity_id?: string | null
           entity_type?: string | null
           id?: string
           metadata?: Json | null
           user_id?: string | null
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       highscore_entries: {
         Row: {
+          alliance_id: string | null
           alliance_tag: string | null
           city_name: string | null
           coordinates: string | null
@@ -108,8 +243,10 @@ export type Database = {
           source: string
           submission_id: string
           submitted_by_user_id: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           alliance_tag?: string | null
           city_name?: string | null
           coordinates?: string | null
@@ -124,8 +261,10 @@ export type Database = {
           source?: string
           submission_id: string
           submitted_by_user_id: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           alliance_tag?: string | null
           city_name?: string | null
           coordinates?: string | null
@@ -140,8 +279,16 @@ export type Database = {
           source?: string
           submission_id?: string
           submitted_by_user_id?: string
+          world_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "highscore_entries_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "highscore_entries_submission_id_fkey"
             columns: ["submission_id"]
@@ -149,10 +296,18 @@ export type Database = {
             referencedRelation: "highscore_submissions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "highscore_entries_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
         ]
       }
       highscore_submissions: {
         Row: {
+          alliance_id: string | null
           created_at: string
           entries_count: number
           id: string
@@ -162,8 +317,10 @@ export type Database = {
           raw_text: string
           source: string
           submitted_by_user_id: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           created_at?: string
           entries_count?: number
           id?: string
@@ -173,8 +330,10 @@ export type Database = {
           raw_text: string
           source?: string
           submitted_by_user_id: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           created_at?: string
           entries_count?: number
           id?: string
@@ -184,11 +343,28 @@ export type Database = {
           raw_text?: string
           source?: string
           submitted_by_user_id?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "highscore_submissions_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "highscore_submissions_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       highscore_target_status: {
         Row: {
+          alliance_id: string | null
           assigned_by_user_id: string | null
           assigned_pirate_name: string | null
           collected_at: string | null
@@ -202,8 +378,10 @@ export type Database = {
           started_at: string | null
           status: string
           updated_at: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           assigned_by_user_id?: string | null
           assigned_pirate_name?: string | null
           collected_at?: string | null
@@ -217,8 +395,10 @@ export type Database = {
           started_at?: string | null
           status?: string
           updated_at?: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           assigned_by_user_id?: string | null
           assigned_pirate_name?: string | null
           collected_at?: string | null
@@ -232,11 +412,28 @@ export type Database = {
           started_at?: string | null
           status?: string
           updated_at?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "highscore_target_status_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "highscore_target_status_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ikariam_accounts: {
         Row: {
+          alliance_id: string | null
           assigned_by_user_id: string | null
           assigned_pirate_name: string | null
           assignment_started_at: string | null
@@ -252,8 +449,10 @@ export type Database = {
           owner_user_id: string
           points_authoritative_at: string | null
           points_source: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           assigned_by_user_id?: string | null
           assigned_pirate_name?: string | null
           assignment_started_at?: string | null
@@ -269,8 +468,10 @@ export type Database = {
           owner_user_id: string
           points_authoritative_at?: string | null
           points_source?: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           assigned_by_user_id?: string | null
           assigned_pirate_name?: string | null
           assignment_started_at?: string | null
@@ -286,11 +487,28 @@ export type Database = {
           owner_user_id?: string
           points_authoritative_at?: string | null
           points_source?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ikariam_accounts_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ikariam_accounts_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pirate_cluster_status: {
         Row: {
+          alliance_id: string | null
           assigned_by_user_id: string | null
           assigned_pirate_name: string | null
           cluster_key: string
@@ -304,8 +522,10 @@ export type Database = {
           started_at: string | null
           status: string
           updated_at: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           assigned_by_user_id?: string | null
           assigned_pirate_name?: string | null
           cluster_key: string
@@ -319,8 +539,10 @@ export type Database = {
           started_at?: string | null
           status?: string
           updated_at?: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           assigned_by_user_id?: string | null
           assigned_pirate_name?: string | null
           cluster_key?: string
@@ -334,11 +556,28 @@ export type Database = {
           started_at?: string | null
           status?: string
           updated_at?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pirate_cluster_status_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pirate_cluster_status_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pirate_collection_events: {
         Row: {
+          alliance_id: string | null
           collected_at: string
           collected_by_name: string
           collected_by_user_id: string | null
@@ -349,8 +588,10 @@ export type Database = {
           target_alliance: string | null
           target_coordinates: string | null
           target_username: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           collected_at?: string
           collected_by_name: string
           collected_by_user_id?: string | null
@@ -361,8 +602,10 @@ export type Database = {
           target_alliance?: string | null
           target_coordinates?: string | null
           target_username: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           collected_at?: string
           collected_by_name?: string
           collected_by_user_id?: string | null
@@ -373,11 +616,28 @@ export type Database = {
           target_alliance?: string | null
           target_coordinates?: string | null
           target_username?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pirate_collection_events_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pirate_collection_events_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pirate_missions: {
         Row: {
+          alliance_id: string | null
           completed_at: string | null
           completes_at: string
           created_at: string
@@ -388,8 +648,10 @@ export type Database = {
           started_at: string
           status: Database["public"]["Enums"]["mission_status"]
           user_id: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           completed_at?: string | null
           completes_at: string
           created_at?: string
@@ -400,8 +662,10 @@ export type Database = {
           started_at?: string
           status?: Database["public"]["Enums"]["mission_status"]
           user_id: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           completed_at?: string | null
           completes_at?: string
           created_at?: string
@@ -412,8 +676,16 @@ export type Database = {
           started_at?: string
           status?: Database["public"]["Enums"]["mission_status"]
           user_id?: string
+          world_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pirate_missions_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pirate_missions_ikariam_account_id_fkey"
             columns: ["ikariam_account_id"]
@@ -421,10 +693,18 @@ export type Database = {
             referencedRelation: "ikariam_accounts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pirate_missions_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pirate_player_assignments: {
         Row: {
+          alliance_id: string | null
           coordinates: string | null
           created_at: string
           created_by: string | null
@@ -434,8 +714,10 @@ export type Database = {
           source: string
           updated_at: string
           username_key: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           coordinates?: string | null
           created_at?: string
           created_by?: string | null
@@ -445,8 +727,10 @@ export type Database = {
           source?: string
           updated_at?: string
           username_key: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           coordinates?: string | null
           created_at?: string
           created_by?: string | null
@@ -456,35 +740,57 @@ export type Database = {
           source?: string
           updated_at?: string
           username_key?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pirate_player_assignments_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pirate_player_assignments_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pirate_region_items: {
         Row: {
+          alliance_id: string | null
           created_at: string
           id: string
           item_type: string
           region_id: string
+          world_id: string | null
           x_end: number
           x_start: number
           y_end: number
           y_start: number
         }
         Insert: {
+          alliance_id?: string | null
           created_at?: string
           id?: string
           item_type?: string
           region_id: string
+          world_id?: string | null
           x_end: number
           x_start: number
           y_end: number
           y_start: number
         }
         Update: {
+          alliance_id?: string | null
           created_at?: string
           id?: string
           item_type?: string
           region_id?: string
+          world_id?: string | null
           x_end?: number
           x_start?: number
           y_end?: number
@@ -492,46 +798,73 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pirate_region_items_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pirate_region_items_region_id_fkey"
             columns: ["region_id"]
             isOneToOne: false
             referencedRelation: "pirate_regions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pirate_region_items_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pirate_region_players: {
         Row: {
+          alliance_id: string | null
           created_at: string
           created_by: string | null
           id: string
           ikariam_username: string
           region_id: string
           username_key: string
+          world_id: string | null
           x: number
           y: number
         }
         Insert: {
+          alliance_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           ikariam_username: string
           region_id: string
           username_key: string
+          world_id?: string | null
           x: number
           y: number
         }
         Update: {
+          alliance_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
           ikariam_username?: string
           region_id?: string
           username_key?: string
+          world_id?: string | null
           x?: number
           y?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "pirate_region_players_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pirate_region_players_region_id_fkey"
             columns: ["region_id"]
@@ -539,10 +872,18 @@ export type Database = {
             referencedRelation: "pirate_regions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pirate_region_players_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pirate_regions: {
         Row: {
+          alliance_id: string | null
           color: string
           created_at: string
           created_by: string | null
@@ -550,8 +891,10 @@ export type Database = {
           name: string | null
           pirate_user_id: string
           updated_at: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           color?: string
           created_at?: string
           created_by?: string | null
@@ -559,8 +902,10 @@ export type Database = {
           name?: string | null
           pirate_user_id: string
           updated_at?: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           color?: string
           created_at?: string
           created_by?: string | null
@@ -568,11 +913,28 @@ export type Database = {
           name?: string | null
           pirate_user_id?: string
           updated_at?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pirate_regions_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pirate_regions_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pirate_rounds: {
         Row: {
+          alliance_id: string | null
           completed_at: string | null
           created_at: string
           created_by: string | null
@@ -580,8 +942,10 @@ export type Database = {
           id: string
           starts_at: string
           status: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -589,8 +953,10 @@ export type Database = {
           id?: string
           starts_at?: string
           status?: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
@@ -598,11 +964,28 @@ export type Database = {
           id?: string
           starts_at?: string
           status?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pirate_rounds_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pirate_rounds_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pirate_target_status: {
         Row: {
+          alliance_id: string | null
           alliance_tag: string | null
           assigned_by_user_id: string | null
           assigned_pirate_name: string | null
@@ -619,8 +1002,10 @@ export type Database = {
           status: string
           updated_at: string
           username_key: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           alliance_tag?: string | null
           assigned_by_user_id?: string | null
           assigned_pirate_name?: string | null
@@ -637,8 +1022,10 @@ export type Database = {
           status?: string
           updated_at?: string
           username_key: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           alliance_tag?: string | null
           assigned_by_user_id?: string | null
           assigned_pirate_name?: string | null
@@ -655,11 +1042,28 @@ export type Database = {
           status?: string
           updated_at?: string
           username_key?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pirate_target_status_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pirate_target_status_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       player_relations: {
         Row: {
+          alliance_id: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -667,8 +1071,10 @@ export type Database = {
           relation_type: string
           updated_at: string
           username_key: string
+          world_id: string | null
         }
         Insert: {
+          alliance_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -676,8 +1082,10 @@ export type Database = {
           relation_type: string
           updated_at?: string
           username_key: string
+          world_id?: string | null
         }
         Update: {
+          alliance_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -685,8 +1093,24 @@ export type Database = {
           relation_type?: string
           updated_at?: string
           username_key?: string
+          world_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "player_relations_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_relations_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -712,24 +1136,218 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
+      system_admins: {
         Row: {
           created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_active_context: {
+        Row: {
+          alliance_id: string | null
+          updated_at: string
+          user_id: string
+          world_id: string | null
+        }
+        Insert: {
+          alliance_id?: string | null
+          updated_at?: string
+          user_id: string
+          world_id?: string | null
+        }
+        Update: {
+          alliance_id?: string | null
+          updated_at?: string
+          user_id?: string
+          world_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_active_context_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_active_context_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_memberships: {
+        Row: {
+          alliance_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          user_id: string
+          world_id: string
+        }
+        Insert: {
+          alliance_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          user_id: string
+          world_id: string
+        }
+        Update: {
+          alliance_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          user_id?: string
+          world_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_memberships_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_memberships_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          alliance_id: string | null
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          world_id: string | null
+        }
+        Insert: {
+          alliance_id?: string | null
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+          world_id?: string | null
+        }
+        Update: {
+          alliance_id?: string | null
+          created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+          world_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_alliance_id_fkey"
+            columns: ["alliance_id"]
+            isOneToOne: false
+            referencedRelation: "alliances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_visibility_permissions: {
+        Row: {
+          can_view_global_clusters: boolean | null
+          can_view_global_highscore: boolean | null
+          can_view_global_map: boolean | null
+          can_view_global_nearest_points: boolean | null
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          world_id: string
+        }
+        Insert: {
+          can_view_global_clusters?: boolean | null
+          can_view_global_highscore?: boolean | null
+          can_view_global_map?: boolean | null
+          can_view_global_nearest_points?: boolean | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          world_id: string
+        }
+        Update: {
+          can_view_global_clusters?: boolean | null
+          can_view_global_highscore?: boolean | null
+          can_view_global_map?: boolean | null
+          can_view_global_nearest_points?: boolean | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          world_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_visibility_permissions_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worlds: {
+        Row: {
+          country_code: string | null
+          country_name: string | null
+          created_at: string
+          created_by: string | null
+          flag_emoji: string | null
+          id: string
+          name: string
+          timezone: string
+        }
+        Insert: {
+          country_code?: string | null
+          country_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          flag_emoji?: string | null
+          id?: string
+          name: string
+          timezone?: string
+        }
+        Update: {
+          country_code?: string | null
+          country_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          flag_emoji?: string | null
+          id?: string
+          name?: string
+          timezone?: string
         }
         Relationships: []
       }
@@ -739,8 +1357,22 @@ export type Database = {
     }
     Functions: {
       active_pirate_round_id: { Args: never; Returns: string }
+      active_pirate_round_id_for: {
+        Args: { _alliance_id: string }
+        Returns: string
+      }
       complete_due_pirate_missions: { Args: never; Returns: number }
       complete_due_pirate_rounds: { Args: never; Returns: number }
+      current_alliance_id: { Args: never; Returns: string }
+      current_world_id: { Args: never; Returns: string }
+      has_alliance_role: {
+        Args: {
+          _alliance_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -748,6 +1380,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_alliance_member: {
+        Args: { _alliance_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_system_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:

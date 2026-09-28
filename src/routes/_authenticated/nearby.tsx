@@ -1,3 +1,5 @@
+import { mergeGlobal } from "@/hooks/use-global-entries";
+import { useOwnTag } from "@/hooks/use-tenant";
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -67,6 +69,7 @@ function parseCoords(c: string | null | undefined) {
 }
 
 function useCandidates() {
+  const ownTag = useOwnTag();
   const cur = getCurrentPeriod();
   const prev = getPreviousPeriod();
   return useQuery({
@@ -85,7 +88,7 @@ function useCandidates() {
           key: `acc-${a.id}`,
           username: a.ikariam_username,
           points: a.current_pirate_points ?? 0,
-          alliance_tag: "BAUN",
+          alliance_tag: ownTag,
           coordinates: a.fortress_coordinates as string,
           city_name: null,
           rank: null,
@@ -115,7 +118,7 @@ function useCandidates() {
           if (data.length < PAGE) break;
           from += PAGE;
         }
-        return all;
+        return mergeGlobal(all, "nearest", startISO, endISO);
       };
 
       let hs = await loadHs(cur.start.toISOString(), cur.end.toISOString());

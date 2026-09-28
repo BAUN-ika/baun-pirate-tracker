@@ -11,6 +11,7 @@ import {
   MapPinned,
   Radar,
   Settings,
+  ShieldCheck,
   Ship,
   Skull,
   Target,
@@ -22,12 +23,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser, type AppRole } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
+import { useTenant } from "@/hooks/use-tenant";
 
 interface NavItem {
   label: string;
   to: string;
   icon: React.ComponentType<{ className?: string }>;
   roles?: AppRole[]; // if set, only these roles see it
+  sysAdmin?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -44,6 +47,7 @@ const NAV: NavItem[] = [
   { label: "Piratski učinak", to: "/performance", icon: Trophy },
   { label: "Audit log", to: "/audit", icon: FileClock },
   { label: "Admin panel", to: "/admin", icon: Settings, roles: ["admin"] },
+  { label: "System Admin", to: "/system-admin", icon: ShieldCheck, sysAdmin: true },
 ];
 
 // Rute koje koriste samo tačno poređenje (sprječava da "/highscore/submit"
@@ -53,10 +57,12 @@ const EXACT_ROUTES = new Set(["/highscore", "/highscore/submit"]);
 
 export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
-  const { data, isAdmin } = useCurrentUser();
+  const { data, isAdmin, isSystemAdmin } = useCurrentUser();
+  const { tenant } = useTenant();
   const nav = useNavigate();
 
   const visible = NAV.filter((n) => {
+    if (n.sysAdmin) return isSystemAdmin;
     if (!n.roles) return true;
     if (n.roles.includes("admin") && isAdmin) return true;
     return n.roles.some((r) => data?.roles.includes(r));
@@ -87,7 +93,9 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
           <Ship className="size-5 text-gold" />
         </div>
         <div>
-          <div className="font-display text-lg text-gold leading-none">BAUN</div>
+          <div className="font-display text-lg text-gold leading-none">
+            {tenant?.activeAlliance?.tag ?? "BAUN"}
+          </div>
           <div className="text-[10px] text-muted-foreground tracking-widest uppercase">
             Pirate Tracker
           </div>

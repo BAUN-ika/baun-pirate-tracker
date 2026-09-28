@@ -23,16 +23,16 @@ export const registerWithPasscode = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => RegisterSchema.parse(input))
   .handler(async ({ data }) => {
     // 1) verify BAUN passcode
-    const { data: settings, error: sErr } = await supabaseAdmin
-      .from("app_settings")
-      .select("baun_passcode_hash")
-      .eq("id", 1)
-      .single();
-    if (sErr || !settings) {
+    const { data: alliance, error: sErr } = await supabaseAdmin
+      .from("alliances")
+      .select("id, is_active")
+      .eq("passcode_hash", sha256Hex(data.passcode))
+      .maybeSingle();
+    if (sErr) {
       return { ok: false as const, error: "Sistemski problem. Pokušaj ponovo." };
     }
-    if (sha256Hex(data.passcode) !== settings.baun_passcode_hash) {
-      return { ok: false as const, error: "Pogrešan BAUN passcode." };
+    if (!alliance || !alliance.is_active) {
+      return { ok: false as const, error: "Pogrešan passcode saveza." };
     }
 
     // 2) ensure username uniqueness
@@ -50,7 +50,7 @@ export const registerWithPasscode = createServerFn({ method: "POST" })
       email: data.email,
       password: data.password,
       email_confirm: true,
-      user_metadata: { username: data.username },
+      user_metadata: { username: data.username, alliance_id: alliance.id },
     });
     if (cErr || !created.user) {
       const msg = cErr?.message ?? "Registracija nije uspjela.";
