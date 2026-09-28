@@ -123,6 +123,7 @@ function walk(root: Node) {
 }
 
 let observer: MutationObserver | null = null;
+let hydrated = false;
 function startObserver() {
   if (observer) return;
   observer = new MutationObserver((muts) => {
@@ -157,8 +158,16 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    loadDict(lang).then((d) => {
+    const ready = hydrated
+      ? Promise.resolve()
+      : new Promise<void>((r) => {
+          const go = () => setTimeout(r, 400);
+          if (document.readyState === "complete") go();
+          else window.addEventListener("load", go, { once: true });
+        });
+    Promise.all([loadDict(lang), ready]).then(([d]) => {
       if (cancelled) return;
+      hydrated = true;
       dict = d;
       document.documentElement.lang = lang;
       startObserver();
