@@ -19,6 +19,7 @@ export interface CurrentUserData {
     is_active: boolean;
   } | null;
   roles: AppRole[];
+  isSystemAdmin: boolean;
 }
 
 export function useSupabaseSession() {
@@ -48,14 +49,19 @@ export function useCurrentUser() {
     enabled: !!userId,
     queryFn: async (): Promise<CurrentUserData | null> => {
       if (!session) return null;
-      const [{ data: profile }, { data: roles }] = await Promise.all([
+      const [{ data: profile }, { data: roles }, { data: sa }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", session.user.id),
+        supabase.rpc("is_system_admin", { _user_id: session.user.id }),
       ]);
+      const list = ((roles ?? []) as { role: AppRole }[]).map((r) => r.role);
+      // System admin ima admin privilegije u bilo kojem aktivnom kontekstu.
+      if (sa && !list.includes("admin")) list.push("admin");
       return {
         user: session.user,
         profile: profile ?? null,
-        roles: ((roles ?? []) as { role: AppRole }[]).map((r) => r.role),
+        roles: list,
+        isSystemAdmin: !!sa,
       };
     },
   });
@@ -65,6 +71,7 @@ export function useCurrentUser() {
     loading: loading || query.isLoading,
     data: query.data ?? null,
     isAdmin: !!query.data?.roles.includes("admin"),
+    isSystemAdmin: !!query.data?.isSystemAdmin,
     isPirate:
       !!query.data?.roles.includes("admin") ||
       !!query.data?.roles.includes("glavni_pirat") ||
