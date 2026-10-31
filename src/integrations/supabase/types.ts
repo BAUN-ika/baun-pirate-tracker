@@ -1394,7 +1394,12 @@ export type Database = {
         | "pirat"
         | "ide_na_plasman"
       mission_status: "pending" | "completed" | "cancelled"
-      mission_type: "mission_8h" | "mission_16h"
+      mission_type:
+        | "mission_8h"
+        | "mission_16h"
+        | "mission_1h"
+        | "mission_2h"
+        | "mission_4h"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1530,7 +1535,13 @@ export const Constants = {
         "ide_na_plasman",
       ],
       mission_status: ["pending", "completed", "cancelled"],
-      mission_type: ["mission_8h", "mission_16h"],
+      mission_type: [
+        "mission_8h",
+        "mission_16h",
+        "mission_1h",
+        "mission_2h",
+        "mission_4h",
+      ],
     },
   },
 } as const
