@@ -185,7 +185,7 @@ export const collectPoints = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     const { data: prev } = await supabaseAdmin
       .from("ikariam_accounts")
-      .select("current_pirate_points, ikariam_username")
+      .select("current_pirate_points, ikariam_username, assignment_status")
       .eq("id", data.account_id)
       .eq("alliance_id", allianceId)
       .single();
@@ -217,7 +217,7 @@ export const collectPoints = createServerFn({ method: "POST" })
       metadata: {
         collected: prev?.current_pirate_points ?? null,
         ikariam_username: prev?.ikariam_username ?? null,
-        previous_status: "ready_or_en_route",
+        previous_status: prev?.assignment_status ?? null,
         new_status: "collected",
       },
     });

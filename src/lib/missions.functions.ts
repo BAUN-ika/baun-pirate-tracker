@@ -83,6 +83,11 @@ export const cancelMission = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => CancelSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { data: mission } = await supabase
+      .from("pirate_missions")
+      .select("mission_type, reward_points, ikariam_accounts(ikariam_username)")
+      .eq("id", data.mission_id)
+      .maybeSingle();
     const { error } = await supabase
       .from("pirate_missions")
       .update({ status: "cancelled" })
@@ -90,11 +95,20 @@ export const cancelMission = createServerFn({ method: "POST" })
       .eq("status", "pending");
     if (error) throw new Error(error.message);
 
+    const acc = (mission as { ikariam_accounts?: { ikariam_username?: string } | null } | null)
+      ?.ikariam_accounts;
     await safeAuditLog(context.supabase, {
       user_id: userId,
       action: "mission_cancelled",
       entity_type: "pirate_mission",
       entity_id: data.mission_id,
+      metadata: {
+        ikariam_username: acc?.ikariam_username ?? null,
+        mission_type: mission?.mission_type ?? null,
+        reward_points: mission?.reward_points ?? null,
+        previous_status: "pending",
+        new_status: "cancelled",
+      },
     });
     return { ok: true };
   });
