@@ -85,6 +85,13 @@
       "when": 1793470724049,
       "tag": "0011_add_shorter_mission_types",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793472760584,
+      "tag": "0012_scanner_world_mapping",
+      "breakpoints": true
     }
   ]
 }

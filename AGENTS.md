@@ -6,3 +6,5 @@
 - Server code using supabaseAdmin must filter by activeAllianceId() from src/lib/tenant.ts. Why: admin client bypasses RLS.
 - Cross-alliance data only via getGlobalEntries (src/lib/global.functions.ts), permission-checked and sanitized. Why: never leak operational details of other alliances.
 - i18n: UI source text stays Bosnian/Serbian latin in code; src/i18n/i18n.tsx translates rendered DOM via src/i18n/locales/<lang>.json (source→translation, {0} placeholders); mark user data with data-no-i18n. Why: translates all UI without rewriting every component.
+- Automatic scanner uses a same-origin popup bridge with strict origin/source/nonce checks; app sessions never leave the app origin. Why: Ikariam cannot read app cookies and must not receive credentials.
+- Manual and automatic imports share highscore-import.server.ts; scanner scope comes from hostname mapping plus verified active membership, never selected context. All privileged writes include explicit alliance/world scope. Why: reuse point priorities without context races or cross-world leaks.
