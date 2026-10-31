@@ -5,3 +5,6 @@
 - [x] System Admin panel
 - [x] Globalna vidljivost (sanitizovano, postojeća pravila prioriteta)
 - [ ] Ručni prolaz kroz 17 test scenarija sa testnim savezom (čeka potvrdu korisnika da smijem napraviti testni savez/korisnika)
+- [ ] Automatski Pirate Scanner: mapiranje servera na svijet i siguran izbor saveza
+- [ ] Jedinstven highscore uvoz, bookmarklet i obavještenja
+- [ ] Testovi skenera, izolacije i ponovljenog uvoza
