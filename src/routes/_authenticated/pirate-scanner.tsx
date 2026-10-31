@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Radar, Bookmark, Info } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { scannerBookmarklet } from "@/lib/scanner-bookmarklet";
 
 export const Route = createFileRoute("/_authenticated/pirate-scanner")({
   component: PirateScannerPage,
@@ -19,7 +20,7 @@ function PirateScannerPage() {
 
   useEffect(() => {
     const appOrigin = window.location.origin;
-    const href = `javascript:(()=>{const s=document.createElement('script');s.dataset.appOrigin=${JSON.stringify(appOrigin)};s.src=${JSON.stringify(appOrigin + "/ikariam-pirates.js")}+'?v='+Date.now();s.onerror=()=>{const n=document.createElement('div');n.textContent='Pirate Scanner: script blocked. Allow scripts from Pirate Tracker and try again.';n.style.cssText='position:fixed;bottom:20px;right:20px;z-index:2147483647';document.body.appendChild(n)};document.body.appendChild(s);})()`;
+    const href = scannerBookmarklet(appOrigin);
     bookmarkletRef.current?.setAttribute("href", href);
   }, []);
 

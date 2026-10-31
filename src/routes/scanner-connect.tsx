@@ -42,6 +42,7 @@ function ScannerConnect() {
     let disposed = false;
     let selected = "";
     let importing = false;
+    let readyMessage: Record<string, unknown> | undefined;
     let userId = "";
     let worldId = "";
     let idleTimer: ReturnType<typeof setTimeout>;
@@ -63,7 +64,8 @@ function ScannerConnect() {
       selected = id;
       localStorage.setItem(`scanner-alliance:${userId}:${worldId}`, id);
       setAlliances([]); setStatus("Skener je povezan. Skeniranje je u toku...");
-      send("ready", { alliance_id: id });
+      readyMessage = { alliance_id: id };
+      send("ready", readyMessage);
     };
     const start = async () => {
       try {
@@ -85,6 +87,7 @@ function ScannerConnect() {
     const receive = async (event: MessageEvent) => {
       if (event.source !== opener || event.origin !== origin || event.data?.channel !== "pirate-scanner" || event.data?.nonce !== nonce) return;
       if (event.data.type === "heartbeat") {
+        if (readyMessage && !importing) send("ready", readyMessage);
         clearTimeout(idleTimer); idleTimer = setTimeout(() => { setStatus("Veza sa skenerom je prekinuta."); window.close(); }, 120_000); return;
       }
       if (event.data.type !== "import" || importing || !selected) return;

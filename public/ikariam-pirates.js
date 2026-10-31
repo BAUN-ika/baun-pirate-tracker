@@ -16,6 +16,7 @@
       .replace(/\.\./g, ".");
   }
   const appOrigin = document.currentScript && document.currentScript.dataset.appOrigin;
+  window.__pirateScannerLoading = false;
   if (!appOrigin) return;
   if (window.__pirateScannerRunning) return;
   window.__pirateScannerRunning = true;
@@ -38,8 +39,10 @@
   if (!host || location.protocol !== "https:") {
     notify("Open an Ikariam game server first.", true); window.__pirateScannerRunning = false; return;
   }
-  const nonce = crypto.randomUUID();
-  const bridge = window.open(appOrigin + "/scanner-connect#origin=" + encodeURIComponent(location.origin) + "&nonce=" + nonce, "pirate-scanner-" + nonce, "width=480,height=600");
+  const connection = window.__pirateScannerConnection;
+  const nonce = connection?.origin === appOrigin ? connection.nonce : crypto.randomUUID();
+  const bridge = connection?.origin === appOrigin ? connection.bridge : window.open(appOrigin + "/scanner-connect#origin=" + encodeURIComponent(location.origin) + "&nonce=" + nonce, "pirate-scanner-" + nonce, "width=480,height=600");
+  delete window.__pirateScannerConnection;
   if (!bridge) {
     notify("Allow pop-ups for Ikariam, then click Pirate Scanner again.", true); window.__pirateScannerRunning = false; return;
   }
