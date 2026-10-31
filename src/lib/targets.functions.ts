@@ -196,6 +196,8 @@ export const accountSetEnRoute = createServerFn({ method: "POST" })
         coordinates: acc.fortress_coordinates,
         assigned_pirate_name: name,
         assigned_by_user_id: userId,
+        previous_status: acc.assignment_status,
+        new_status: "en_route",
       },
     });
     return { ok: true, assigned_pirate_name: name };
@@ -208,7 +210,7 @@ export const accountCancelEnRoute = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: acc } = await supabase
       .from("ikariam_accounts")
-      .select("assigned_by_user_id, assigned_pirate_name, ikariam_username")
+      .select("assigned_by_user_id, assigned_pirate_name, ikariam_username, assignment_status")
       .eq("id", data.account_id)
       .maybeSingle();
     if (!acc) throw new Error("Nalog nije pronađen.");
@@ -232,6 +234,8 @@ export const accountCancelEnRoute = createServerFn({ method: "POST" })
       metadata: {
         ikariam_username: acc.ikariam_username,
         assigned_pirate_name: acc.assigned_pirate_name,
+        previous_status: acc.assignment_status,
+        new_status: "ready",
       },
     });
     return { ok: true };
