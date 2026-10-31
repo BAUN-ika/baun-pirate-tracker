@@ -22,6 +22,7 @@ import {
 } from "@/lib/period";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  head: () => ({ meta: [{"title": "Dashboard | Pirate Tracker"}, {"name": "description", "content": "Pregled piratskih poena i aktivnosti saveza."}, {"property": "og:title", "content": "Dashboard | Pirate Tracker"}, {"property": "og:description", "content": "Pregled piratskih poena i aktivnosti saveza."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   component: Dashboard,
 });
 

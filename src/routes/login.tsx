@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth-shell";
 
 export const Route = createFileRoute("/login")({
+  head: () => ({ meta: [{"title": "Prijava | Pirate Tracker"}, {"name": "description", "content": "Prijava u Pirate Tracker."}, {"property": "og:title", "content": "Prijava | Pirate Tracker"}, {"property": "og:description", "content": "Prijava u Pirate Tracker."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/dashboard" });

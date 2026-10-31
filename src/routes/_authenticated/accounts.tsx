@@ -52,6 +52,7 @@ import { CoordsLink, validCoords } from "@/components/coords-link";
 
 
 export const Route = createFileRoute("/_authenticated/accounts")({
+  head: () => ({ meta: [{"title": "Moji nalozi | Pirate Tracker"}, {"name": "description", "content": "Ikariam nalozi, piratski poeni i misije."}, {"property": "og:title", "content": "Moji nalozi | Pirate Tracker"}, {"property": "og:description", "content": "Ikariam nalozi, piratski poeni i misije."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   component: AccountsPage,
 });
 

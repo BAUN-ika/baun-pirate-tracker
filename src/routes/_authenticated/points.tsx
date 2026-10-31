@@ -32,6 +32,7 @@ import { missionHours } from "@/lib/mission-types";
 import { CoordsLink } from "@/components/coords-link";
 
 export const Route = createFileRoute("/_authenticated/points")({
+  head: () => ({ meta: [{"title": "Piratski poeni saveza | Pirate Tracker"}, {"name": "description", "content": "Piratski poeni i statusi naloga saveza."}, {"property": "og:title", "content": "Piratski poeni saveza | Pirate Tracker"}, {"property": "og:description", "content": "Piratski poeni i statusi naloga saveza."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   component: PointsPage,
 });
 

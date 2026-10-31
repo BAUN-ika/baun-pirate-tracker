@@ -43,6 +43,7 @@ import { PlayerRelationsCard } from "@/components/admin-player-relations";
 import { RoundSettingsCard } from "@/components/admin-round-settings";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  head: () => ({ meta: [{"title": "Admin panel | Pirate Tracker"}, {"name": "description", "content": "Upravljanje korisnicima i postavkama aktivnog saveza."}, {"property": "og:title", "content": "Admin panel | Pirate Tracker"}, {"property": "og:description", "content": "Upravljanje korisnicima i postavkama aktivnog saveza."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });

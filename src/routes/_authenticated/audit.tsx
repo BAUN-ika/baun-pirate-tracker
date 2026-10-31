@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/audit")({
+  head: () => ({ meta: [{"title": "Audit log | Pirate Tracker"}, {"name": "description", "content": "Istorija akcija u aktivnom savezu."}, {"property": "og:title", "content": "Audit log | Pirate Tracker"}, {"property": "og:description", "content": "Istorija akcija u aktivnom savezu."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   component: AuditPage,
 });
 
