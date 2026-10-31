@@ -27,6 +27,7 @@ import { Route as AuthenticatedRegionsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSystemAdminRouteImport } from './routes/_authenticated/system-admin'
 import { Route as AuthenticatedHighscoreIndexRouteImport } from './routes/_authenticated/highscore.index'
 import { Route as AuthenticatedHighscoreSubmitRouteImport } from './routes/_authenticated/highscore.submit'
+import { Route as ApiPublicScannerRouteImport } from './routes/api/public/scanner'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -122,6 +123,11 @@ const AuthenticatedHighscoreSubmitRoute =
     path: '/highscore/submit',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicScannerRoute = ApiPublicScannerRouteImport.update({
+  id: '/api/public/scanner',
+  path: '/api/public/scanner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -140,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/regions': typeof AuthenticatedRegionsRoute
   '/system-admin': typeof AuthenticatedSystemAdminRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
+  '/api/public/scanner': typeof ApiPublicScannerRoute
   '/highscore/': typeof AuthenticatedHighscoreIndexRoute
 }
 export interface FileRoutesByTo {
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/regions': typeof AuthenticatedRegionsRoute
   '/system-admin': typeof AuthenticatedSystemAdminRoute
   '/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
+  '/api/public/scanner': typeof ApiPublicScannerRoute
   '/highscore': typeof AuthenticatedHighscoreIndexRoute
 }
 export interface FileRoutesById {
@@ -180,6 +188,7 @@ export interface FileRoutesById {
   '/_authenticated/regions': typeof AuthenticatedRegionsRoute
   '/_authenticated/system-admin': typeof AuthenticatedSystemAdminRoute
   '/_authenticated/highscore/submit': typeof AuthenticatedHighscoreSubmitRoute
+  '/api/public/scanner': typeof ApiPublicScannerRoute
   '/_authenticated/highscore/': typeof AuthenticatedHighscoreIndexRoute
 }
 export interface FileRouteTypes {
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/regions'
     | '/system-admin'
     | '/highscore/submit'
+    | '/api/public/scanner'
     | '/highscore/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/regions'
     | '/system-admin'
     | '/highscore/submit'
+    | '/api/public/scanner'
     | '/highscore'
   id:
     | '__root__'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/_authenticated/regions'
     | '/_authenticated/system-admin'
     | '/_authenticated/highscore/submit'
+    | '/api/public/scanner'
     | '/_authenticated/highscore/'
   fileRoutesById: FileRoutesById
 }
@@ -248,6 +260,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  ApiPublicScannerRoute: typeof ApiPublicScannerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -378,6 +391,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHighscoreSubmitRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/scanner': {
+      id: '/api/public/scanner'
+      path: '/api/public/scanner'
+      fullPath: '/api/public/scanner'
+      preLoaderRoute: typeof ApiPublicScannerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -424,6 +444,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  ApiPublicScannerRoute: ApiPublicScannerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
