@@ -502,23 +502,18 @@ function AccountCard({
               </AlertDialogContent>
             </AlertDialog>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={startBusy}
-              onClick={() => onStartMission("mission_16h")}
-            >
-              <Ship className="size-3.5 mr-1.5" /> 16h misija
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={startBusy}
-              onClick={() => onStartMission("mission_8h")}
-            >
-              <Ship className="size-3.5 mr-1.5" /> 8h misija
-            </Button>
+           <div className="grid grid-cols-3 gap-2">
+            {MISSION_TYPES.map((m) => (
+              <Button
+                key={m.type}
+                variant="secondary"
+                size="sm"
+                disabled={startBusy}
+                onClick={() => onStartMission(m.type)}
+              >
+                <Ship className="size-3.5 mr-1.5" /> {m.hours}h misija
+              </Button>
+            ))}
           </div>
         </div>
       )}
@@ -549,8 +544,7 @@ function MissionProgressInline({
   const remainingMs = Math.max(0, end - now);
   const remH = Math.floor(remainingMs / 3_600_000);
   const remM = Math.floor((remainingMs % 3_600_000) / 60_000);
-  const label =
-    mission.mission_type === "mission_16h" ? "16h misija" : "8h misija";
+  const label = `${missionHours(mission.mission_type)}h misija`;
 
   return (
     <div className="rounded-xl border border-border bg-background/30 p-3">
@@ -585,7 +579,7 @@ function BulkMissionsCard({
 }: {
   accountCount: number;
   busy: boolean;
-  onRun: (type: "mission_8h" | "mission_16h") => void;
+  onRun: (type: MissionType) => void;
 }) {
   const disabled = accountCount === 0 || busy;
   return (
@@ -606,19 +600,16 @@ function BulkMissionsCard({
             </p>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-2 md:flex md:gap-2 shrink-0">
-          <BulkConfirmButton
-            label="8h misija za sve"
-            disabled={disabled}
-            description={`Pokrenuti 8h misiju za sve tvoje naloge? Svaki nalog će dobiti +4634 poena kada misija istekne.`}
-            onConfirm={() => onRun("mission_8h")}
-          />
-          <BulkConfirmButton
-            label="16h misija za sve"
-            disabled={disabled}
-            description={`Pokrenuti 16h misiju za sve tvoje naloge? Svaki nalog će dobiti +7414 poena kada misija istekne.`}
-            onConfirm={() => onRun("mission_16h")}
-          />
+        <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-2 shrink-0">
+          {MISSION_TYPES.map((m) => (
+            <BulkConfirmButton
+              key={m.type}
+              label={`${m.hours}h misija za sve`}
+              disabled={disabled}
+              description={`Pokrenuti ${m.hours}h misiju za sve tvoje naloge? Svaki nalog će dobiti +${m.reward} poena kada misija istekne.`}
+              onConfirm={() => onRun(m.type)}
+            />
+          ))}
         </div>
       </div>
     </div>
