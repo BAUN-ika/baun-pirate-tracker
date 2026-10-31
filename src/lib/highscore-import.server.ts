@@ -8,7 +8,7 @@ import type { SubmitResult } from "@/lib/highscore.functions";
 export async function importHighscore(data: { raw_text: string; scanner_request_id?: string }, scope: {
   supabase: SupabaseClient<Database>; userId: string; allianceId: string; worldId: string; isAdmin: boolean;
 }): Promise<SubmitResult> {
-  const { supabase, userId, allianceId, worldId, isAdmin } = scope;
+  const { userId, allianceId, worldId, isAdmin } = scope;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const audit = async (entry: { user_id: string; action: string; entity_type: string; entity_id: string; metadata: Record<string, unknown> }) => {
     const { error } = await supabaseAdmin.from("audit_logs").insert({ ...entry, metadata: entry.metadata as Json, alliance_id: allianceId, world_id: worldId });
@@ -95,12 +95,13 @@ export async function importHighscore(data: { raw_text: string; scanner_request_
       // Highscore smije prepisati poene naloga SAMO ako nema ručnog unosa,
       // završene misije ili pokupljanja nakon posljednje granice 18:00 (Europe/Sarajevo).
       const boundary = start; // posljednja 18:00 granica
-      const { data: allAccounts } = await supabaseAdmin
+      const { data: allAccounts, error: accountsError } = await supabaseAdmin
         .from("ikariam_accounts")
         .select(
           "id, ikariam_username, current_pirate_points, points_source, points_authoritative_at",
         )
-        .eq("alliance_id", allianceId);
+        .eq("alliance_id", allianceId).eq("world_id", worldId);
+      if (accountsError) throw new Error(accountsError.message);
 
       const byName = new Map<
         string,
@@ -188,11 +189,13 @@ export async function importHighscore(data: { raw_text: string; scanner_request_
       const newPoints = cp.piratePoints;
 
       // Find matching account (case-insensitive). Use admin client to avoid RLS hiding accounts.
-      const { data: accounts } = await supabaseAdmin
+      const { data: accounts, error: cpAccountsError } = await supabaseAdmin
         .from("ikariam_accounts")
         .select("id, owner_user_id, current_pirate_points, ikariam_username")
         .eq("alliance_id", allianceId)
+        .eq("world_id", worldId)
         .ilike("ikariam_username", uname);
+      if (cpAccountsError) throw new Error(cpAccountsError.message);
 
       const match = (accounts ?? []).find(
         (a) => a.ikariam_username.trim().toLowerCase() === uname.toLowerCase(),
