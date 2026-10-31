@@ -5,13 +5,24 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const MISSION_REWARD = {
+  mission_1h: { hours: 1, reward: 1131 },
+  mission_2h: { hours: 2, reward: 1810 },
+  mission_4h: { hours: 4, reward: 2896 },
   mission_8h: { hours: 8, reward: 4634 },
   mission_16h: { hours: 16, reward: 7414 },
 } as const;
 
+const MISSION_TYPES = [
+  "mission_1h",
+  "mission_2h",
+  "mission_4h",
+  "mission_8h",
+  "mission_16h",
+] as const;
+
 const StartSchema = z.object({
   account_id: z.string().uuid(),
-  mission_type: z.enum(["mission_8h", "mission_16h"]),
+  mission_type: z.enum(MISSION_TYPES),
 });
 
 export const startMission = createServerFn({ method: "POST" })
@@ -52,7 +63,7 @@ export const startMission = createServerFn({ method: "POST" })
 
     await safeAuditLog(context.supabase, {
       user_id: userId,
-      action: data.mission_type === "mission_16h" ? "mission_start_16h" : "mission_start_8h",
+      action: `mission_start_${cfg.hours}h`,
       entity_type: "pirate_mission",
       entity_id: row.id,
       metadata: {
@@ -98,7 +109,7 @@ export const completeDueMissions = createServerFn({ method: "POST" })
   });
 
 const BulkSchema = z.object({
-  mission_type: z.enum(["mission_8h", "mission_16h"]),
+  mission_type: z.enum(MISSION_TYPES),
 });
 
 export const startBulkMissionForMyAccounts = createServerFn({ method: "POST" })

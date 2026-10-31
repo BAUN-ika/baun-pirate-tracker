@@ -78,6 +78,13 @@
       "when": 1790583519994,
       "tag": "0010_multi_tenant_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793470724049,
+      "tag": "0011_add_shorter_mission_types",
+      "breakpoints": true
     }
   ]
 }

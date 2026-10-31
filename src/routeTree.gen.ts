@@ -9,28 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedSystemAdminRouteImport } from './routes/_authenticated/system-admin'
-import { Route as AuthenticatedRegionsRouteImport } from './routes/_authenticated/regions'
-import { Route as AuthenticatedPointsRouteImport } from './routes/_authenticated/points'
-import { Route as AuthenticatedPirateScannerRouteImport } from './routes/_authenticated/pirate-scanner'
-import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
-import { Route as AuthenticatedNearbyRouteImport } from './routes/_authenticated/nearby'
-import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedClustersRouteImport } from './routes/_authenticated/clusters'
-import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/audit'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/audit'
+import { Route as AuthenticatedClustersRouteImport } from './routes/_authenticated/clusters'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedMapRouteImport } from './routes/_authenticated/map'
+import { Route as AuthenticatedNearbyRouteImport } from './routes/_authenticated/nearby'
+import { Route as AuthenticatedPerformanceRouteImport } from './routes/_authenticated/performance'
+import { Route as AuthenticatedPirateScannerRouteImport } from './routes/_authenticated/pirate-scanner'
+import { Route as AuthenticatedPointsRouteImport } from './routes/_authenticated/points'
+import { Route as AuthenticatedRegionsRouteImport } from './routes/_authenticated/regions'
+import { Route as AuthenticatedSystemAdminRouteImport } from './routes/_authenticated/system-admin'
 import { Route as AuthenticatedHighscoreIndexRouteImport } from './routes/_authenticated/highscore.index'
 import { Route as AuthenticatedHighscoreSubmitRouteImport } from './routes/_authenticated/highscore.submit'
 
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -38,66 +42,14 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedSystemAdminRoute =
-  AuthenticatedSystemAdminRouteImport.update({
-    id: '/system-admin',
-    path: '/system-admin',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedRegionsRoute = AuthenticatedRegionsRouteImport.update({
-  id: '/regions',
-  path: '/regions',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedPointsRoute = AuthenticatedPointsRouteImport.update({
-  id: '/points',
-  path: '/points',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedPirateScannerRoute =
-  AuthenticatedPirateScannerRouteImport.update({
-    id: '/pirate-scanner',
-    path: '/pirate-scanner',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedPerformanceRoute =
-  AuthenticatedPerformanceRouteImport.update({
-    id: '/performance',
-    path: '/performance',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedNearbyRoute = AuthenticatedNearbyRouteImport.update({
-  id: '/nearby',
-  path: '/nearby',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedMapRoute = AuthenticatedMapRouteImport.update({
-  id: '/map',
-  path: '/map',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedClustersRoute = AuthenticatedClustersRouteImport.update({
-  id: '/clusters',
-  path: '/clusters',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedAuditRoute = AuthenticatedAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
+const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -105,11 +57,59 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
-  id: '/accounts',
-  path: '/accounts',
+const AuthenticatedAuditRoute = AuthenticatedAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedClustersRoute = AuthenticatedClustersRouteImport.update({
+  id: '/clusters',
+  path: '/clusters',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMapRoute = AuthenticatedMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedNearbyRoute = AuthenticatedNearbyRouteImport.update({
+  id: '/nearby',
+  path: '/nearby',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPerformanceRoute =
+  AuthenticatedPerformanceRouteImport.update({
+    id: '/performance',
+    path: '/performance',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPirateScannerRoute =
+  AuthenticatedPirateScannerRouteImport.update({
+    id: '/pirate-scanner',
+    path: '/pirate-scanner',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedPointsRoute = AuthenticatedPointsRouteImport.update({
+  id: '/points',
+  path: '/points',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRegionsRoute = AuthenticatedRegionsRouteImport.update({
+  id: '/regions',
+  path: '/regions',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSystemAdminRoute =
+  AuthenticatedSystemAdminRouteImport.update({
+    id: '/system-admin',
+    path: '/system-admin',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedHighscoreIndexRoute =
   AuthenticatedHighscoreIndexRouteImport.update({
     id: '/highscore/',
@@ -252,18 +252,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -273,81 +266,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/system-admin': {
-      id: '/_authenticated/system-admin'
-      path: '/system-admin'
-      fullPath: '/system-admin'
-      preLoaderRoute: typeof AuthenticatedSystemAdminRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/regions': {
-      id: '/_authenticated/regions'
-      path: '/regions'
-      fullPath: '/regions'
-      preLoaderRoute: typeof AuthenticatedRegionsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/points': {
-      id: '/_authenticated/points'
-      path: '/points'
-      fullPath: '/points'
-      preLoaderRoute: typeof AuthenticatedPointsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/pirate-scanner': {
-      id: '/_authenticated/pirate-scanner'
-      path: '/pirate-scanner'
-      fullPath: '/pirate-scanner'
-      preLoaderRoute: typeof AuthenticatedPirateScannerRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/performance': {
-      id: '/_authenticated/performance'
-      path: '/performance'
-      fullPath: '/performance'
-      preLoaderRoute: typeof AuthenticatedPerformanceRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/nearby': {
-      id: '/_authenticated/nearby'
-      path: '/nearby'
-      fullPath: '/nearby'
-      preLoaderRoute: typeof AuthenticatedNearbyRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/map': {
-      id: '/_authenticated/map'
-      path: '/map'
-      fullPath: '/map'
-      preLoaderRoute: typeof AuthenticatedMapRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/clusters': {
-      id: '/_authenticated/clusters'
-      path: '/clusters'
-      fullPath: '/clusters'
-      preLoaderRoute: typeof AuthenticatedClustersRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/audit': {
-      id: '/_authenticated/audit'
-      path: '/audit'
-      fullPath: '/audit'
-      preLoaderRoute: typeof AuthenticatedAuditRouteImport
+    '/_authenticated/accounts': {
+      id: '/_authenticated/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AuthenticatedAccountsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/admin': {
@@ -357,11 +294,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/accounts': {
-      id: '/_authenticated/accounts'
-      path: '/accounts'
-      fullPath: '/accounts'
-      preLoaderRoute: typeof AuthenticatedAccountsRouteImport
+    '/_authenticated/audit': {
+      id: '/_authenticated/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuthenticatedAuditRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/clusters': {
+      id: '/_authenticated/clusters'
+      path: '/clusters'
+      fullPath: '/clusters'
+      preLoaderRoute: typeof AuthenticatedClustersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/map': {
+      id: '/_authenticated/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof AuthenticatedMapRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/nearby': {
+      id: '/_authenticated/nearby'
+      path: '/nearby'
+      fullPath: '/nearby'
+      preLoaderRoute: typeof AuthenticatedNearbyRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/performance': {
+      id: '/_authenticated/performance'
+      path: '/performance'
+      fullPath: '/performance'
+      preLoaderRoute: typeof AuthenticatedPerformanceRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pirate-scanner': {
+      id: '/_authenticated/pirate-scanner'
+      path: '/pirate-scanner'
+      fullPath: '/pirate-scanner'
+      preLoaderRoute: typeof AuthenticatedPirateScannerRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/points': {
+      id: '/_authenticated/points'
+      path: '/points'
+      fullPath: '/points'
+      preLoaderRoute: typeof AuthenticatedPointsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/regions': {
+      id: '/_authenticated/regions'
+      path: '/regions'
+      fullPath: '/regions'
+      preLoaderRoute: typeof AuthenticatedRegionsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/system-admin': {
+      id: '/_authenticated/system-admin'
+      path: '/system-admin'
+      fullPath: '/system-admin'
+      preLoaderRoute: typeof AuthenticatedSystemAdminRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/highscore/': {
