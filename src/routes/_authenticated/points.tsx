@@ -28,6 +28,7 @@ import {
 import { useEffectiveRelation } from "@/components/alliance-badge";
 import { AllianceRelationsCard } from "@/components/admin-alliance-relations";
 import { completeDueMissions } from "@/lib/missions.functions";
+import { missionHours } from "@/lib/mission-types";
 import { CoordsLink } from "@/components/coords-link";
 
 export const Route = createFileRoute("/_authenticated/points")({
@@ -347,10 +348,10 @@ function MissionRowBar({ mission }: { mission: any }) {
   const remainingMs = Math.max(0, end - now);
   const remH = Math.floor(remainingMs / 3_600_000);
   const remM = Math.floor((remainingMs % 3_600_000) / 60_000);
-  const totalH = mission.mission_type === "mission_16h" ? 16 : 8;
+  const totalH = missionHours(mission.mission_type);
   const elapsedH = Math.floor(elapsed / 3_600_000);
   const elapsedM = Math.floor((elapsed % 3_600_000) / 60_000);
-  const label = mission.mission_type === "mission_16h" ? "16h" : "8h";
+  const label = `${totalH}h`;
   return (
     <div className="space-y-1">
       <div className="text-[11px] flex items-center gap-1.5">
