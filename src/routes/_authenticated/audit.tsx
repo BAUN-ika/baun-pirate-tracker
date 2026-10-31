@@ -39,6 +39,7 @@ const ACTION_LABEL: Record<string, string> = {
   mission_start_16h: "Misija pokrenuta (16h)",
   bulk_mission_started: "Masovna misija pokrenuta",
   mission_cancelled: "Misija otkazana",
+  mission_completed: "Misija završena",
   pirate_target_en_route: "Krenuo po poene",
   pirate_target_en_route_cancelled: "Otkazano kretanje",
   pirate_target_collected: "Meta pokupljena",
