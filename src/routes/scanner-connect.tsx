@@ -25,8 +25,8 @@ function ScannerConnect() {
   const [password, setPassword] = useState("");
   const [alliances, setAlliances] = useState<Alliance[]>([]);
   const [working, setWorking] = useState(false);
-  const restart = useRef<() => Promise<void>>();
-  const choose = useRef<(id: string) => void>();
+  const restart = useRef<(() => Promise<void>) | undefined>(undefined);
+  const choose = useRef<((id: string) => void) | undefined>(undefined);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.slice(1));
