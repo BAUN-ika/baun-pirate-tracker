@@ -99,6 +99,12 @@ export const updateAccountPoints = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => UpdatePointsSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { data: prev } = await supabase
+      .from("ikariam_accounts")
+      .select("ikariam_username, current_pirate_points")
+      .eq("id", data.account_id)
+      .eq("owner_user_id", userId)
+      .maybeSingle();
     const { data: row, error } = await supabase
       .from("ikariam_accounts")
       .update({
@@ -117,7 +123,11 @@ export const updateAccountPoints = createServerFn({ method: "POST" })
       action: "update_points",
       entity_type: "ikariam_account",
       entity_id: data.account_id,
-      metadata: { points: data.points },
+      metadata: {
+        ikariam_username: prev?.ikariam_username ?? null,
+        previous_points: prev?.current_pirate_points ?? null,
+        points: data.points,
+      },
     });
     return row;
   });
@@ -129,6 +139,12 @@ export const deleteAccount = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => DeleteAccountSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { data: prev } = await supabase
+      .from("ikariam_accounts")
+      .select("ikariam_username, current_pirate_points")
+      .eq("id", data.account_id)
+      .eq("owner_user_id", userId)
+      .maybeSingle();
     const { error } = await supabase
       .from("ikariam_accounts")
       .delete()
@@ -140,6 +156,10 @@ export const deleteAccount = createServerFn({ method: "POST" })
       action: "delete_account",
       entity_type: "ikariam_account",
       entity_id: data.account_id,
+      metadata: {
+        ikariam_username: prev?.ikariam_username ?? null,
+        previous_points: prev?.current_pirate_points ?? null,
+      },
     });
     return { ok: true };
   });
@@ -165,7 +185,7 @@ export const collectPoints = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     const { data: prev } = await supabaseAdmin
       .from("ikariam_accounts")
-      .select("current_pirate_points, ikariam_username")
+      .select("current_pirate_points, ikariam_username, assignment_status")
       .eq("id", data.account_id)
       .eq("alliance_id", allianceId)
       .single();
@@ -197,6 +217,8 @@ export const collectPoints = createServerFn({ method: "POST" })
       metadata: {
         collected: prev?.current_pirate_points ?? null,
         ikariam_username: prev?.ikariam_username ?? null,
+        previous_status: prev?.assignment_status ?? null,
+        new_status: "collected",
       },
     });
     return row;

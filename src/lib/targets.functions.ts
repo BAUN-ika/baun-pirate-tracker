@@ -196,6 +196,8 @@ export const accountSetEnRoute = createServerFn({ method: "POST" })
         coordinates: acc.fortress_coordinates,
         assigned_pirate_name: name,
         assigned_by_user_id: userId,
+        previous_status: acc.assignment_status,
+        new_status: "en_route",
       },
     });
     return { ok: true, assigned_pirate_name: name };
@@ -208,7 +210,7 @@ export const accountCancelEnRoute = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: acc } = await supabase
       .from("ikariam_accounts")
-      .select("assigned_by_user_id, assigned_pirate_name, ikariam_username")
+      .select("assigned_by_user_id, assigned_pirate_name, ikariam_username, assignment_status")
       .eq("id", data.account_id)
       .maybeSingle();
     if (!acc) throw new Error("Nalog nije pronađen.");
@@ -232,6 +234,8 @@ export const accountCancelEnRoute = createServerFn({ method: "POST" })
       metadata: {
         ikariam_username: acc.ikariam_username,
         assigned_pirate_name: acc.assigned_pirate_name,
+        previous_status: acc.assignment_status,
+        new_status: "ready",
       },
     });
     return { ok: true };
@@ -304,6 +308,8 @@ export const highscoreSetEnRoute = createServerFn({ method: "POST" })
         alliance_tag: data.alliance_tag ?? null,
         assigned_pirate_name: name,
         assigned_by_user_id: userId,
+        previous_status: existing?.status ?? "ready",
+        new_status: "en_route",
       },
     });
     return { ok: true, assigned_pirate_name: name };
@@ -341,6 +347,8 @@ export const highscoreCancelEnRoute = createServerFn({ method: "POST" })
       metadata: {
         period_start: data.period_start,
         assigned_pirate_name: existing.assigned_pirate_name,
+        previous_status: existing.status,
+        new_status: "ready",
       },
     });
     return { ok: true };
@@ -388,6 +396,8 @@ export const highscoreCollect = createServerFn({ method: "POST" })
         rank: data.rank ?? null,
         coordinates: data.coordinates ?? null,
         alliance_tag: data.alliance_tag ?? null,
+        previous_status: existing?.status ?? "ready",
+        new_status: "collected",
       },
     });
     return { ok: true };
@@ -467,6 +477,8 @@ export const clusterSetEnRoute = createServerFn({ method: "POST" })
         cluster_key: data.cluster_key,
         assigned_pirate_name: name,
         assigned_by_user_id: userId,
+        previous_status: existing?.status ?? "ready",
+        new_status: "en_route",
       },
     });
     return { ok: true, assigned_pirate_name: name };
@@ -505,7 +517,10 @@ export const clusterCancelEnRoute = createServerFn({ method: "POST" })
       metadata: {
         period_start: data.period_start,
         radius: data.radius,
+        cluster_key: data.cluster_key,
         assigned_pirate_name: existing.assigned_pirate_name,
+        previous_status: existing.status,
+        new_status: "ready",
       },
     });
     return { ok: true };
@@ -557,6 +572,8 @@ export const clusterCollect = createServerFn({ method: "POST" })
         period_start: data.period_start,
         radius: data.radius,
         cluster_key: data.cluster_key,
+        previous_status: existing?.status ?? "ready",
+        new_status: "collected",
       },
     });
     return { ok: true };

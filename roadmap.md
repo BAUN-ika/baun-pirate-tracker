@@ -9,3 +9,5 @@
 - [x] Testovi parsera, prioriteta, izolacije, ponovljenog uvoza i prikaza uvezenih igrača
 - [ ] Provjera bookmarkleta na stvarnoj Ikariam stranici nakon objave (potreban pristup igri; lokalno testirano sa simuliranom Ikariam stranicom)
 - [x] Šest scenarija vlasništva i vidljivosti provjereno u testnom svijetu: mješoviti tagovi, drugi član, zabrana/dozvola globalnog pregleda, izolacija svijeta, nezavisni uvozi istog igrača; dodani trajni testovi bez promjene logike
+- [x] Responsive: Masovne misije — dugmad se lamaju u redove, bez horizontalnog preliva (700px/380px provjereno)
+- [x] Audit log: klik/dvoklik na red otvara detalje (vrijeme, korisnik, akcija, entitet, svijet, savez, puni metapodaci); čitljivi opisi akcija; obogaćeni metapodaci (username, prethodni/novi status, poeni); mission_completed sada bilježi username + svijet
