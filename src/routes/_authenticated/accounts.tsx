@@ -137,7 +137,7 @@ function AccountsPage() {
   });
 
   const startMut = useMutation({
-    mutationFn: (vars: { account_id: string; mission_type: "mission_8h" | "mission_16h" }) =>
+    mutationFn: (vars: { account_id: string; mission_type: MissionType }) =>
       startMissionFn({ data: vars }),
     onSuccess: () => {
       toast.success("Misija pokrenuta.");
@@ -158,14 +158,14 @@ function AccountsPage() {
   });
 
   const bulkMut = useMutation({
-    mutationFn: (type: "mission_8h" | "mission_16h") =>
+    mutationFn: (type: MissionType) =>
       bulkMissionFn({ data: { mission_type: type } }),
     onSuccess: (res, type) => {
       if (res.created === 0) {
         toast.error("Nemaš nijedan Ikariam nalog za pokretanje misije.");
         return;
       }
-      const label = type === "mission_8h" ? "8h" : "16h";
+      const label = `${missionHours(type)}h`;
       toast.success(`${label} misija je pokrenuta za ${res.created} naloga.`);
       qc.invalidateQueries({ queryKey: ["my-missions"] });
       qc.invalidateQueries({ queryKey: ["all-missions"] });
