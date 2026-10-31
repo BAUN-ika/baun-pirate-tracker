@@ -304,6 +304,8 @@ export const highscoreSetEnRoute = createServerFn({ method: "POST" })
         alliance_tag: data.alliance_tag ?? null,
         assigned_pirate_name: name,
         assigned_by_user_id: userId,
+        previous_status: existing?.status ?? "ready",
+        new_status: "en_route",
       },
     });
     return { ok: true, assigned_pirate_name: name };
@@ -341,6 +343,8 @@ export const highscoreCancelEnRoute = createServerFn({ method: "POST" })
       metadata: {
         period_start: data.period_start,
         assigned_pirate_name: existing.assigned_pirate_name,
+        previous_status: existing.status,
+        new_status: "ready",
       },
     });
     return { ok: true };
@@ -388,6 +392,8 @@ export const highscoreCollect = createServerFn({ method: "POST" })
         rank: data.rank ?? null,
         coordinates: data.coordinates ?? null,
         alliance_tag: data.alliance_tag ?? null,
+        previous_status: existing?.status ?? "ready",
+        new_status: "collected",
       },
     });
     return { ok: true };
