@@ -47,6 +47,8 @@ const WorldSchema = z.object({
   country_code: z.string().trim().max(4).optional().nullable(),
   country_name: z.string().trim().max(60).optional().nullable(),
   flag_emoji: z.string().trim().max(16).optional().nullable(),
+  server_number: z.number().int().min(1).max(9999).optional().nullable(),
+  server_region: z.string().trim().toLowerCase().regex(/^[a-z]{2,8}$/).optional().nullable(),
 });
 
 export const sysSaveWorld = createServerFn({ method: "POST" })
@@ -59,11 +61,16 @@ export const sysSaveWorld = createServerFn({ method: "POST" })
       country_code: data.country_code || null,
       country_name: data.country_name || null,
       flag_emoji: data.flag_emoji || null,
+      server_number: data.server_number ?? null,
+      server_region: data.server_region || null,
     };
     const res = data.id
       ? await db.from("worlds").update(row).eq("id", data.id)
       : await db.from("worlds").insert({ ...row, created_by: context.userId });
-    if (res.error) throw new Error(res.error.message);
+    if (res.error) {
+      if (res.error.code === "23505") throw new Error("Ovaj Ikariam server je već povezan sa drugim svijetom.");
+      throw new Error(res.error.message);
+    }
     await safeAuditLog(context.supabase, {
       user_id: context.userId,
       action: data.id ? "sys_world_updated" : "sys_world_created",
