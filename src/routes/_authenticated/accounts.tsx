@@ -43,6 +43,11 @@ import {
   startBulkMissionForMyAccounts,
   startMission,
 } from "@/lib/missions.functions";
+import {
+  MISSION_TYPES,
+  missionHours,
+  type MissionType,
+} from "@/lib/mission-types";
 import { CoordsLink, validCoords } from "@/components/coords-link";
 
 
@@ -267,7 +272,7 @@ function AccountsPage() {
       <BulkMissionsCard
         accountCount={(accounts.data ?? []).length}
         busy={bulkMut.isPending}
-        onRun={(type: "mission_8h" | "mission_16h") => bulkMut.mutate(type)}
+        onRun={(type: MissionType) => bulkMut.mutate(type)}
       />
 
       {accounts.isLoading ? (
@@ -341,7 +346,7 @@ function AccountCard({
   onUpdatePts: (pts: number) => Promise<void>;
   onUpdateCoords: (coords: string) => Promise<void>;
   onDelete: () => Promise<void>;
-  onStartMission: (type: "mission_8h" | "mission_16h") => void;
+  onStartMission: (type: MissionType) => void;
   onCancelMission: (id: string) => void;
   startBusy: boolean;
 }) {
