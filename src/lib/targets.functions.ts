@@ -513,7 +513,10 @@ export const clusterCancelEnRoute = createServerFn({ method: "POST" })
       metadata: {
         period_start: data.period_start,
         radius: data.radius,
+        cluster_key: data.cluster_key,
         assigned_pirate_name: existing.assigned_pirate_name,
+        previous_status: existing.status,
+        new_status: "ready",
       },
     });
     return { ok: true };
