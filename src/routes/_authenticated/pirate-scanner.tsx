@@ -5,15 +5,22 @@ import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/pirate-scanner")({
   component: PirateScannerPage,
+  head: () => ({ meta: [
+    { title: "Ikariam Pirate Scanner | Pirate Tracker" },
+    { name: "description", content: "Jednoklik skeniranje i automatski uvoz piratskih lista." },
+    { property: "og:title", content: "Ikariam Pirate Scanner | Pirate Tracker" },
+    { property: "og:description", content: "Siguran uvoz u tvoj Ikariam svijet i savez." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
 });
-
-const BOOKMARKLET_HREF = `javascript:(()=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/BAUN-ika/baun-pirate-tracker@main/public/ikariam-pirates.js?v='+Date.now();document.body.appendChild(s);})()`;
 
 function PirateScannerPage() {
   const bookmarkletRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
-    bookmarkletRef.current?.setAttribute("href", BOOKMARKLET_HREF);
+    const appOrigin = window.location.origin;
+    const href = `javascript:(()=>{const s=document.createElement('script');s.dataset.appOrigin=${JSON.stringify(appOrigin)};s.src=${JSON.stringify(appOrigin + "/ikariam-pirates.js")}+'?v='+Date.now();s.onerror=()=>{const n=document.createElement('div');n.textContent='Pirate Scanner: script blocked. Allow scripts from Pirate Tracker and try again.';n.style.cssText='position:fixed;bottom:20px;right:20px;z-index:2147483647';document.body.appendChild(n)};document.body.appendChild(s);})()`;
+    bookmarkletRef.current?.setAttribute("href", href);
   }, []);
 
   return (
@@ -67,19 +74,10 @@ function PirateScannerPage() {
             <li>Prevuci dugme "Pirate Scanner" u bookmarks bar browsera.</li>
             <li>Otvori Ikariam i idi na Pirate Fortress rankings.</li>
             <li>Klikni bookmarklet.</li>
-            <li>Sačekaj poruku da su podaci kopirani.</li>
-            <li>
-              Ako browser ne dozvoli automatsko kopiranje, kopiraj tekst iz
-              prikazanog polja ručno.
-            </li>
-            <li>Vrati se u BAUN Pirate Tracker.</li>
-            <li>
-              Otvori stranicu{" "}
-              <strong className="text-gold">Highscore unos</strong>.
-            </li>
-            <li>Zalijepi kopirane podatke u textarea.</li>
-            <li>Pregledaj preview parsiranih redova.</li>
-            <li>Klikni "Sačuvaj highscore unos".</li>
+            <li>Dozvoli mali prozor za povezivanje sa Pirate Trackerom.</li>
+            <li>Ako nisi prijavljen, prijavi se u tom prozoru. Ako imaš više saveza u istom svijetu, odaberi savez jednom.</li>
+            <li>Sačekaj potvrdu da je uvoz završen; kopiranje i lijepljenje nisu potrebni.</li>
+            <li>Za ažuriranje zamijeni stari bookmarklet ovim dugmetom. Ručni Highscore unos ostaje dostupan.</li>
           </ol>
         </div>
       </div>

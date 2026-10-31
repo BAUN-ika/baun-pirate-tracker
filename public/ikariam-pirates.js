@@ -15,44 +15,58 @@
       .replace(/[\s\u00A0]+/g, "")
       .replace(/\.\./g, ".");
   }
-  async function copyToClipboard(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-      return navigator.clipboard.writeText(text);
+  const appOrigin = document.currentScript && document.currentScript.dataset.appOrigin;
+  if (!appOrigin) return;
+  if (window.__pirateScannerRunning) return;
+  window.__pirateScannerRunning = true;
+  const palette = { background: "#121923", foreground: "#edf0f4", border: "#d4af37" };
+  function notify(message, final) {
+    let box = document.getElementById("pirateScannerNotification");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "pirateScannerNotification";
+      box.setAttribute("role", "status");
+      box.style.cssText = "position:fixed;z-index:2147483647;bottom:20px;right:20px;max-width:360px;padding:14px;border:1px solid;border-radius:6px;font:14px/1.5 Arial,sans-serif;white-space:pre-wrap";
+      box.style.background = palette.background; box.style.color = palette.foreground; box.style.borderColor = palette.border;
+      document.body.appendChild(box);
     }
-    const el = document.createElement("textarea");
-    el.value = text;
-    el.setAttribute("readonly", "");
-    el.style.position = "absolute";
-    el.style.left = "-9999px";
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand("copy");
-    document.body.removeChild(el);
-    return Promise.resolve();
+    box.textContent = "Pirate Scanner · " + message;
+    clearTimeout(window.__pirateScannerNoticeTimer);
+    if (final) window.__pirateScannerNoticeTimer = setTimeout(() => box.remove(), 20000);
   }
-  function showManualCopyBox(text) {
-    const oldBox = document.getElementById("baunPirateScannerBox");
-    if (oldBox) oldBox.remove();
-    const box = document.createElement("div");
-    box.id = "baunPirateScannerBox";
-    box.style.cssText =
-      "position:fixed;z-index:999999;top:20px;left:20px;right:20px;background:#111;color:#fff;border:2px solid #d4af37;border-radius:10px;padding:14px;font-family:Arial,sans-serif;box-shadow:0 10px 40px rgba(0,0,0,.5)";
-    box.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
-      "<b>BAUN Pirate Scanner result</b>" +
-      '<button id="baunCloseScannerBox" style="padding:6px 10px;cursor:pointer">Close</button>' +
-      "</div>" +
-      '<p style="margin:0 0 8px 0;color:#ddd">Browser je blokirao automatsko kopiranje. Klikni u polje, zatim Ctrl+A i Ctrl+C.</p>' +
-      '<textarea id="baunPirateScannerResult" style="width:100%;height:320px;background:#000;color:#0f0;border:1px solid #555;border-radius:6px;padding:10px;font-family:monospace;font-size:13px"></textarea>';
-    document.body.appendChild(box);
-    const textarea = document.getElementById("baunPirateScannerResult");
-    textarea.value = text;
-    textarea.focus();
-    textarea.select();
-    document.getElementById("baunCloseScannerBox").onclick = function () {
-      box.remove();
-    };
+  const host = /^s([1-9]\d{0,3})-([a-z]{2,8})\.ikariam\.gameforge\.com$/i.exec(location.hostname);
+  if (!host || location.protocol !== "https:") {
+    notify("Open an Ikariam game server first.", true); window.__pirateScannerRunning = false; return;
   }
+  const nonce = crypto.randomUUID();
+  const bridge = window.open(appOrigin + "/scanner-connect#origin=" + encodeURIComponent(location.origin) + "&nonce=" + nonce, "pirate-scanner-" + nonce, "width=480,height=600");
+  if (!bridge) {
+    notify("Allow pop-ups for Ikariam, then click Pirate Scanner again.", true); window.__pirateScannerRunning = false; return;
+  }
+  let readyResolve, readyReject, importResolve, importReject;
+  let readySettled = false;
+  let cancelled = false;
+  const ready = new Promise((resolve, reject) => { readyResolve = resolve; readyReject = reject; });
+  let timeout;
+  function receive(event) {
+    if (event.origin !== appOrigin || event.source !== bridge || event.data?.channel !== "pirate-scanner" || event.data?.nonce !== nonce) return;
+    if (event.data.type === "ready") { readySettled = true; readyResolve(event.data); }
+    if (event.data.type === "success" && importResolve) importResolve(event.data);
+    if (event.data.type === "error") {
+      cancelled = true;
+      const error = new Error(event.data.error || "Import failed.");
+      if (!readySettled) { readySettled = true; readyReject(error); }
+      if (importReject) importReject(error);
+    }
+  }
+  window.addEventListener("message", receive);
+  const heartbeat = setInterval(() => {
+    if (bridge.closed) {
+      cancelled = true;
+      if (!readySettled) { readySettled = true; readyReject(new Error("Scanner connection window was closed.")); }
+      if (importReject) importReject(new Error("Scanner connection window was closed."));
+    } else bridge.postMessage({ channel: "pirate-scanner", nonce, type: "heartbeat" }, appOrigin);
+  }, 2000);
   function getCurrentPlayerInfo() {
     const nameEl = document.querySelector("li.avatarName a.noViewParameters");
     const pointsEl = document.querySelector("li.capturePoints span.value");
@@ -113,6 +127,7 @@
       "?view=island&cityId=" + encodeURIComponent(player.cityId),
       { credentials: "same-origin" },
     );
+    if (!response.ok) throw new Error("Could not fetch city information.");
     const html = await response.text();
     const viewData = getViewData(html);
     const island = {
@@ -132,6 +147,7 @@
         ownerAllyTag: city.ownerAllyTag || "",
       };
     }
+    if (!city) throw new Error("Could not locate city " + player.cityId + ". No data was imported.");
     return player;
   }
   function generateRanksText(players) {
@@ -162,54 +178,40 @@
   }
   async function runScanner() {
     try {
+      notify("Checking world mapping and alliance...");
+      await ready; // No expensive game requests before authenticated world resolution.
+      if (cancelled) throw new Error("Scan cancelled.");
       if (!document.getElementById("pirateHighscore")) {
         const position17 = document.getElementById("position17");
-        if (!position17 || !/pirateFortress/.test(position17.className)) {
-          alert(
-            "Please open a city with Pirate Fortress first, then run Pirate Scanner again.",
-          );
-          return;
-        }
+        if (!position17 || !/pirateFortress/.test(position17.className))
+          throw new Error("Open a city with Pirate Fortress first.");
         const fortressLink = document.getElementById("js_CityPosition17Link");
-        if (!fortressLink) {
-          alert(
-            "Could not open Pirate Fortress automatically. Please open Pirate Fortress rankings manually.",
-          );
-          return;
-        }
+        if (!fortressLink) throw new Error("Open Pirate Fortress rankings first.");
         fortressLink.click();
         await sleep(2200);
       }
       const currentPlayerLine = getCurrentPlayerInfo();
       const players = extractPlayers();
-      if (!players.length) {
-        alert(
-          "No pirate ranking players found. Please open Pirate Fortress rankings first.",
-        );
-        return;
+      if (!players.length) throw new Error("No pirate rankings found. Open Pirate Fortress rankings first.");
+      for (let i = 0; i < players.length; i++) {
+        if (cancelled) throw new Error("Scanner connection lost. No data was imported.");
+        notify("Scanning " + (i + 1) + " / " + players.length + "...");
+        await enrichPlayerWithCity(players[i]);
       }
-      for (const player of players) {
-        await enrichPlayerWithCity(player);
-      }
-      const ranksText = generateRanksText(players);
-      const result = [currentPlayerLine, ranksText].filter(Boolean).join("\n");
-      try {
-        await copyToClipboard(result);
-        alert(
-          "Pirate data copied! Current player + players scanned: " +
-            players.length,
-        );
-      } catch (copyError) {
-        showManualCopyBox(result);
-        alert(
-          "Nele kralj :D Ovu poruku ispisuje bigdataspecialist sa discorda :D",
-        );
-      }
+      const result = [currentPlayerLine, generateRanksText(players)].filter(Boolean).join("\n");
+      notify("Collected " + players.length + " players. Submitting...");
+      const imported = new Promise((resolve, reject) => { importResolve = resolve; importReject = reject; });
+      timeout = setTimeout(() => importReject(new Error("Import confirmation timed out. Check Highscore before scanning again.")), 180000);
+      bridge.postMessage({ channel: "pirate-scanner", nonce, type: "import", request_id: nonce, raw_text: result }, appOrigin);
+      const confirmation = await imported;
+      notify("Database import confirmed: " + confirmation.entries_count + " players." + (confirmation.invalid_count ? " Invalid rows: " + confirmation.invalid_count : ""), true);
     } catch (error) {
-      alert(
-        "Pirate Scanner failed: " +
-          (error && error.message ? error.message : String(error)),
-      );
+      notify(error && error.message ? error.message : String(error), true);
+    } finally {
+      clearTimeout(timeout); clearInterval(heartbeat);
+      window.removeEventListener("message", receive);
+      window.__pirateScannerRunning = false;
+      if (!bridge.closed) bridge.close();
     }
   }
   runScanner();

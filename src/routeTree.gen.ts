@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ScannerConnectRouteImport } from './routes/scanner-connect'
 import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/audit'
@@ -46,6 +47,11 @@ const LoginRoute = LoginRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScannerConnectRoute = ScannerConnectRouteImport.update({
+  id: '/scanner-connect',
+  path: '/scanner-connect',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/scanner-connect': typeof ScannerConnectRoute
   '/accounts': typeof AuthenticatedAccountsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/audit': typeof AuthenticatedAuditRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/scanner-connect': typeof ScannerConnectRoute
   '/accounts': typeof AuthenticatedAccountsRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/audit': typeof AuthenticatedAuditRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
+  '/scanner-connect': typeof ScannerConnectRoute
   '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/audit': typeof AuthenticatedAuditRoute
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/scanner-connect'
     | '/accounts'
     | '/admin'
     | '/audit'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/scanner-connect'
     | '/accounts'
     | '/admin'
     | '/audit'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/register'
+    | '/scanner-connect'
     | '/_authenticated/accounts'
     | '/_authenticated/admin'
     | '/_authenticated/audit'
@@ -260,6 +272,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
+  ScannerConnectRoute: typeof ScannerConnectRoute
   ApiPublicScannerRoute: typeof ApiPublicScannerRoute
 }
 
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scanner-connect': {
+      id: '/scanner-connect'
+      path: '/scanner-connect'
+      fullPath: '/scanner-connect'
+      preLoaderRoute: typeof ScannerConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/accounts': {
@@ -444,6 +464,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  ScannerConnectRoute: ScannerConnectRoute,
   ApiPublicScannerRoute: ApiPublicScannerRoute,
 }
 export const routeTree = rootRouteImport
