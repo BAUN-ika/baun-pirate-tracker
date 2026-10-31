@@ -473,6 +473,8 @@ export const clusterSetEnRoute = createServerFn({ method: "POST" })
         cluster_key: data.cluster_key,
         assigned_pirate_name: name,
         assigned_by_user_id: userId,
+        previous_status: existing?.status ?? "ready",
+        new_status: "en_route",
       },
     });
     return { ok: true, assigned_pirate_name: name };
@@ -563,6 +565,8 @@ export const clusterCollect = createServerFn({ method: "POST" })
         period_start: data.period_start,
         radius: data.radius,
         cluster_key: data.cluster_key,
+        previous_status: existing?.status ?? "ready",
+        new_status: "collected",
       },
     });
     return { ok: true };
