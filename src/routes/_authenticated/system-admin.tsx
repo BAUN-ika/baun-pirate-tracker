@@ -106,12 +106,13 @@ function useRefresh() {
 function Worlds({ d }: { d: Overview }) {
   const save = useServerFn(sysSaveWorld);
   const refresh = useRefresh();
-  const [form, setForm] = useState({ id: "", name: "", country_code: "", country_name: "", flag_emoji: "" });
+  const empty = { id: "", name: "", country_code: "", country_name: "", flag_emoji: "", server_number: "", server_region: "" };
+  const [form, setForm] = useState(empty);
   const submit = async () => {
     try {
-      await save({ data: { ...form, id: form.id || undefined } });
+      await save({ data: { ...form, id: form.id || undefined, server_number: form.server_number ? Number(form.server_number) : null, server_region: form.server_region.trim() || null } });
       toast.success("Svijet sačuvan.");
-      setForm({ id: "", name: "", country_code: "", country_name: "", flag_emoji: "" });
+      setForm(empty);
       refresh();
     } catch (e) { err(e); }
   };
@@ -121,9 +122,10 @@ function Worlds({ d }: { d: Overview }) {
         {d.worlds.map((w: any) => (
           <div key={w.id} className="flex items-center justify-between border-b border-border py-2 text-sm">
             <span>{w.flag_emoji} {w.name} <span className="text-muted-foreground">· {w.country_name ?? "—"}</span></span>
-            <Button size="sm" variant="ghost" onClick={() => setForm({ id: w.id, name: w.name, country_code: w.country_code ?? "", country_name: w.country_name ?? "", flag_emoji: w.flag_emoji ?? "" })}>Uredi</Button>
+            <Button size="sm" variant="ghost" onClick={() => setForm({ id: w.id, name: w.name, country_code: w.country_code ?? "", country_name: w.country_name ?? "", flag_emoji: w.flag_emoji ?? "", server_number: w.server_number?.toString() ?? "", server_region: w.server_region ?? "" })}>Uredi</Button>
           </div>
         ))}
+
       </div>
       <div className="pirate-card rounded-2xl p-4 space-y-3">
         <h3 className="font-display">{form.id ? "Uredi svijet" : "Novi svijet"}</h3>
@@ -133,9 +135,14 @@ function Worlds({ d }: { d: Overview }) {
             <Input value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
           </div>
         ))}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1"><Label htmlFor="world-server-number">Broj Ikariam servera</Label><Input id="world-server-number" type="number" min={1} max={9999} value={form.server_number} onChange={e => setForm({ ...form, server_number: e.target.value })} /></div>
+          <div className="space-y-1"><Label htmlFor="world-server-region">Region servera (en, de, fr)</Label><Input id="world-server-region" value={form.server_region} onChange={e => setForm({ ...form, server_region: e.target.value.toLowerCase() })} /></div>
+        </div>
+        <div className="space-y-1"><Label htmlFor="world-hostname">Ikariam hostname</Label><Input id="world-hostname" readOnly data-no-i18n value={form.server_number && form.server_region ? `s${form.server_number}-${form.server_region}.ikariam.gameforge.com` : ""} /></div>
         <div className="flex gap-2">
           <Button onClick={submit} disabled={!form.name.trim()}>Sačuvaj</Button>
-          {form.id && <Button variant="outline" onClick={() => setForm({ id: "", name: "", country_code: "", country_name: "", flag_emoji: "" })}>Otkaži</Button>}
+          {form.id && <Button variant="outline" onClick={() => setForm(empty)}>Otkaži</Button>}
         </div>
       </div>
     </div>

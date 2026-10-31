@@ -21,6 +21,7 @@ import { statusOf, useTargetActions, useTargetStatusMap } from "@/hooks/use-targ
 import { getCurrentPeriod, getPreviousPeriod, type Period } from "@/lib/period";
 
 export const Route = createFileRoute("/_authenticated/highscore/")({
+  head: () => ({ meta: [{"title": "Highscore lista | Pirate Tracker"}, {"name": "description", "content": "Aktuelne i prethodne Ikariam piratske liste."}, {"property": "og:title", "content": "Highscore lista | Pirate Tracker"}, {"property": "og:description", "content": "Aktuelne i prethodne Ikariam piratske liste."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   component: HighscoreListPage,
 });
 

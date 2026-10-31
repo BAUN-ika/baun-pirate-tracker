@@ -10,6 +10,7 @@ import { AuthShell } from "@/components/auth-shell";
 import { registerWithPasscode } from "@/lib/auth.functions";
 
 export const Route = createFileRoute("/register")({
+  head: () => ({ meta: [{"title": "Registracija | Pirate Tracker"}, {"name": "description", "content": "Pridruživanje savezu u Pirate Trackeru."}, {"property": "og:title", "content": "Registracija | Pirate Tracker"}, {"property": "og:description", "content": "Pridruživanje savezu u Pirate Trackeru."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/dashboard" });

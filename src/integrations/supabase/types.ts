@@ -315,6 +315,8 @@ export type Database = {
           period_start: string
           pirate_round_id: string | null
           raw_text: string
+          scanner_request_id: string | null
+          scanner_result: Json | null
           source: string
           submitted_by_user_id: string
           world_id: string | null
@@ -328,6 +330,8 @@ export type Database = {
           period_start: string
           pirate_round_id?: string | null
           raw_text: string
+          scanner_request_id?: string | null
+          scanner_result?: Json | null
           source?: string
           submitted_by_user_id: string
           world_id?: string | null
@@ -341,6 +345,8 @@ export type Database = {
           period_start?: string
           pirate_round_id?: string | null
           raw_text?: string
+          scanner_request_id?: string | null
+          scanner_result?: Json | null
           source?: string
           submitted_by_user_id?: string
           world_id?: string | null
@@ -1327,6 +1333,8 @@ export type Database = {
           flag_emoji: string | null
           id: string
           name: string
+          server_number: number | null
+          server_region: string | null
           timezone: string
         }
         Insert: {
@@ -1337,6 +1345,8 @@ export type Database = {
           flag_emoji?: string | null
           id?: string
           name: string
+          server_number?: number | null
+          server_region?: string | null
           timezone?: string
         }
         Update: {
@@ -1347,6 +1357,8 @@ export type Database = {
           flag_emoji?: string | null
           id?: string
           name?: string
+          server_number?: number | null
+          server_region?: string | null
           timezone?: string
         }
         Relationships: []

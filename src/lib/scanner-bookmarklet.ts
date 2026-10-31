@@ -1,0 +1,5 @@
+// Open the app window during the bookmark click, before asynchronous script loading.
+// No credentials are embedded here.
+export function scannerBookmarklet(appOrigin: string) {
+  return `javascript:(()=>{if(window.__pirateScannerRunning||window.__pirateScannerLoading)return;const origin=${JSON.stringify(appOrigin)};const nonce=crypto.randomUUID();const bridge=window.open(origin+'/scanner-connect#origin='+encodeURIComponent(location.origin)+'&nonce='+nonce,'pirate-scanner-'+nonce,'width=480,height=600');window.__pirateScannerLoading=true;window.__pirateScannerConnection={origin,nonce,bridge};const s=document.createElement('script');s.dataset.appOrigin=origin;s.src=origin+'/ikariam-pirates.js?v='+Date.now();s.onerror=()=>{window.__pirateScannerLoading=false;if(bridge)bridge.close();const n=document.createElement('div');n.textContent='Pirate Scanner: script blocked. Allow scripts from Pirate Tracker and try again.';n.style.cssText='position:fixed;bottom:20px;right:20px;z-index:2147483647';document.body.appendChild(n)};document.body.appendChild(s);})()`;
+}

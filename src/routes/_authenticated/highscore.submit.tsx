@@ -14,6 +14,7 @@ import { getCurrentPeriod } from "@/lib/period";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
 export const Route = createFileRoute("/_authenticated/highscore/submit")({
+  head: () => ({ meta: [{"title": "Highscore unos | Pirate Tracker"}, {"name": "description", "content": "Unos piratske liste i trenutnih poena."}, {"property": "og:title", "content": "Highscore unos | Pirate Tracker"}, {"property": "og:description", "content": "Unos piratske liste i trenutnih poena."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   component: HighscoreSubmitPage,
 });
 

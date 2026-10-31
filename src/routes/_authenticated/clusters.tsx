@@ -49,6 +49,7 @@ function hashKey(s: string): string {
 }
 
 export const Route = createFileRoute("/_authenticated/clusters")({
+  head: () => ({ meta: [{"title": "Piratski klasteri | Pirate Tracker"}, {"name": "description", "content": "Geografski klasteri piratskih meta."}, {"property": "og:title", "content": "Piratski klasteri | Pirate Tracker"}, {"property": "og:description", "content": "Geografski klasteri piratskih meta."}, {"property": "og:type", "content": "website"}, {"name": "twitter:card", "content": "summary"}] }),
   component: ClustersPage,
 });
 
