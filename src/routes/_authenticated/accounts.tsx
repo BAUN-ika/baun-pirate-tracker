@@ -585,10 +585,10 @@ function BulkMissionsCard({
   const disabled = accountCount === 0 || busy;
   return (
     <div className="pirate-card rounded-2xl p-6 mb-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <Timer className="size-5 text-gold" />
+            <Timer className="size-5 text-gold shrink-0" />
             <h2 className="font-display text-xl">Masovne misije</h2>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -601,7 +601,7 @@ function BulkMissionsCard({
             </p>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-2 shrink-0">
+        <div className="flex flex-wrap gap-2">
           {MISSION_TYPES.map((m) => (
             <BulkConfirmButton
               key={m.type}
