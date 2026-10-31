@@ -8,4 +8,4 @@
 - [x] Jedinstven highscore uvoz, bookmarklet i obavještenja
 - [x] Testovi parsera, prioriteta, izolacije, ponovljenog uvoza i prikaza uvezenih igrača
 - [ ] Provjera bookmarkleta na stvarnoj Ikariam stranici nakon objave (potreban pristup igri; lokalno testirano sa simuliranom Ikariam stranicom)
-- [ ] Provjeriti šest scenarija vlasništva i vidljivosti highscore uvoza bez promjene arhitekture
+- [x] Šest scenarija vlasništva i vidljivosti provjereno u testnom svijetu: mješoviti tagovi, drugi član, zabrana/dozvola globalnog pregleda, izolacija svijeta, nezavisni uvozi istog igrača; dodani trajni testovi bez promjene logike
