@@ -118,11 +118,13 @@ function describeAudit(r: AuditRow): string {
     case "current_player_points_submission_created":
       return `Uveo highscore listu (${SOURCE_LABEL[str(m.source) ?? ""] ?? str(m.source) ?? "?"}) — ${num(m.valid_count)} igrača${typeof m.invalid_count === "number" && m.invalid_count > 0 ? `, ${num(m.invalid_count)} nevažećih redova` : ""}`;
     case "highscore_points_synced_to_account":
-      return `Lista je ažurirala poene za ${who ?? "nalog"} na ${num(m.highscore_points)}`;
+      return `Lista je ažurirala poene za ${who ?? "nalog"} na ${num(m.new_points ?? m.highscore_points)}${m.previous_points != null ? ` (bilo: ${num(m.previous_points)})` : ""}`;
     case "highscore_points_sync_skipped":
       return `Preskočeno ažuriranje poena za ${who ?? "nalog"} (noviji unos nakon 18:00)`;
     case "current_player_points_synced_to_account":
-      return `Vlastiti poeni ažurirani na ${num(m.points ?? m.highscore_points)}`;
+      return `Vlastiti poeni ažurirani na ${num(m.new_points ?? m.points ?? m.highscore_points)}`;
+    case "mission_completed":
+      return `Misija završena${who ? ` za ${who}` : ""} — dodijeljeno +${num(m.reward_points)} poena`;
     case "mission_cancelled":
       return `Otkazao misiju${who ? ` za ${who}` : ""}`;
     case "bulk_mission_started":
