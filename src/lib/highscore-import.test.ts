@@ -68,4 +68,30 @@ describe("shared highscore import", () => {
     await importHighscore({ raw_text: `${text}\n498. 8,000 points Luffy en 100:68, 300` },scope);
     expect(state.entries).toHaveLength(2); expect(state.accounts[0].current_pirate_points).toBe(8000);
   });
+  it("imports all game alliance tags into the application group through either entry path", async () => {
+    const raw_text = [
+      "497. 7,414 points Luffy en 100:68, 300",
+      "499. 7,414 points Programmer (BOEM) en 30:2, Cryptology",
+      "504. 7,414 points Maskinen (NOR) en 92:29, dolphin1",
+    ].join("\n");
+    for (const scanner_request_id of [undefined, "scan-mixed-tags"]) {
+      const result = await importHighscore({ raw_text, scanner_request_id }, scope);
+      expect(result.entries_count).toBe(3);
+    }
+    expect(state.entries).toHaveLength(6);
+    expect(state.entries.map(r => r.alliance_tag)).toEqual([null, "BOEM", "NOR", null, "BOEM", "NOR"]);
+    for (const row of state.entries) {
+      expect(row.alliance_id).toBe("a");
+      expect(row.world_id).toBe("w");
+      expect(row.pirate_points).toBe(7414);
+    }
+  });
+  it("keeps the same player independently in two application groups of one world", async () => {
+    state.accounts.push(account("manual", "2026-10-31T17:10:00Z", 12345));
+    state.accounts.push({ ...account("highscore", "2026-10-30T18:00:00Z", 555), id: "account-b", alliance_id: "b" });
+    await importHighscore({ raw_text: text }, scope);
+    await importHighscore({ raw_text: "497. 9,000 points Luffy en 100:68, 300" }, { ...scope, allianceId: "b" });
+    expect(state.accounts.map(r => r.current_pirate_points)).toEqual([12345, 9000]);
+    expect(state.entries.map(r => [r.alliance_id, r.world_id, r.pirate_points])).toEqual([["a", "w", 7414], ["b", "w", 9000]]);
+  });
 });
