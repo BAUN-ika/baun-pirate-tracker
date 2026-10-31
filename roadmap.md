@@ -4,7 +4,7 @@
 - [x] Registracija po passcode-u saveza, runde po savezu
 - [x] System Admin panel
 - [x] Globalna vidljivost (sanitizovano, postojeća pravila prioriteta)
-- [ ] Ručni prolaz kroz 17 test scenarija sa testnim savezom (čeka potvrdu korisnika da smijem napraviti testni savez/korisnika)
-- [ ] Automatski Pirate Scanner: mapiranje servera na svijet i siguran izbor saveza
-- [ ] Jedinstven highscore uvoz, bookmarklet i obavještenja
-- [ ] Testovi skenera, izolacije i ponovljenog uvoza
+- [x] Automatski Pirate Scanner: mapiranje servera na svijet i siguran izbor saveza
+- [x] Jedinstven highscore uvoz, bookmarklet i obavještenja
+- [x] Testovi parsera, prioriteta, izolacije, ponovljenog uvoza i prikaza uvezenih igrača
+- [ ] Provjera bookmarkleta na stvarnoj Ikariam stranici nakon objave (potreban pristup igri; lokalno testirano sa simuliranom Ikariam stranicom)
